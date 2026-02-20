@@ -1,0 +1,40 @@
+import { Router } from 'express';
+import authRoutes from './auth.routes';
+import userRoutes from './user.routes';
+import vocabularyRoutes from './vocabulary.routes';
+import grammarRoutes from './grammar.routes';
+import conversationRoutes from './conversation.routes';
+import listeningRoutes from './listening.routes';
+import readingRoutes from './reading.routes';
+import lessonRoutes from './lesson.routes';
+import quizRoutes from './quiz.routes';
+import reviewRoutes from './review.routes';
+import heartRoutes from './heart.routes';
+import streakRoutes from './streak.routes';
+import badgeRoutes from './badge.routes';
+import coinRoutes from './coin.routes';
+import statsRoutes from './stats.routes';
+import subscriptionRoutes from './subscription.routes';
+import homeRoutes from './home.routes';
+
+const router = Router();
+
+router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
+router.use('/vocabulary', vocabularyRoutes);
+router.use('/grammar', grammarRoutes);
+router.use('/conversations', conversationRoutes);
+router.use('/listening', listeningRoutes);
+router.use('/reading', readingRoutes);
+router.use('/lessons', lessonRoutes);
+router.use('/quiz', quizRoutes);
+router.use('/review', reviewRoutes);
+router.use('/hearts', heartRoutes);
+router.use('/streak', streakRoutes);
+router.use('/badges', badgeRoutes);
+router.use('/coins', coinRoutes);
+router.use('/stats', statsRoutes);
+router.use('/subscription', subscriptionRoutes);
+router.use('/home', homeRoutes);
+
+export default router;
