@@ -8,68 +8,79 @@ import UserLanguageProfile from '@/models/UserLanguageProfile';
 import { XP_CONFIG } from '@/utils/constants';
 
 export class ListeningController {
-  /** 듣기 문제 목록 */
+  /** 듣기 연습 목록 조회 */
   getList = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const targetLanguage = req.user!.activeLanguage;
-      const { level, page = '1', limit = '20' } = req.query;
+      const { targetLanguage, difficulty } = req.query;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const skip = (page - 1) * limit;
 
       const filter: Record<string, any> = { targetLanguage };
-      if (level) filter.level = level;
+      if (difficulty) filter.difficulty = difficulty;
 
-      const pageNum = Number(page);
-      const limitNum = Number(limit);
-
-      const [items, total] = await Promise.all([
-        Listening.find(filter)
-          .sort({ order: 1 })
-          .skip((pageNum - 1) * limitNum)
-          .limit(limitNum),
+      const [listenings, total] = await Promise.all([
+        Listening.find(filter).sort({ order: 1 }).skip(skip).limit(limit),
         Listening.countDocuments(filter),
       ]);
 
-      return ApiResponse.paginated(res, items, total, pageNum, limitNum);
-    } catch (err) { next(err); }
+      return ApiResponse.paginated(res, listenings, {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      });
+    } catch (err) {
+      next(err);
+    }
   };
 
-  /** 듣기 정답 제출 */
+  /** 듣기 답변 제출 */
   submitAnswer = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!._id;
-      const targetLanguage = req.user!.activeLanguage;
-      const listeningId = req.params.id;
-      const { answer } = req.body;
+      const userId = req.user._id;
+      const { listeningId, answer } = req.body;
+      const { targetLanguage } = req.query;
 
       const listening = await Listening.findById(listeningId);
       if (!listening) throw ApiError.notFound('듣기 문제를 찾을 수 없습니다.');
 
-      const isCorrect = answer.trim().toLowerCase() === listening.correctAnswer.trim().toLowerCase();
+      const correct = answer.trim().toLowerCase() === listening.correctAnswer.trim().toLowerCase();
 
-      const progress = await UserProgress.findOne({ userId, targetLanguage });
-      if (!progress) throw ApiError.notFound('학습 진행도를 찾을 수 없습니다.');
+      let userProgress = await UserProgress.findOne({ userId, targetLanguage });
+      if (!userProgress) {
+        userProgress = await UserProgress.create({ userId, targetLanguage });
+      }
 
-      if (!isCorrect) {
-        progress.wrongAnswers.push({
-          category: 'listening',
-          contentId: listeningId as any,
+      if (!correct) {
+        userProgress.wrongAnswers.push({
+          type: 'listening',
+          contentId: listening._id,
           question: listening.audioText,
           userAnswer: answer,
           correctAnswer: listening.correctAnswer,
-          reviewedAt: null,
+          createdAt: new Date(),
         });
+        await userProgress.save();
       }
-      await progress.save();
 
-      let xpEarned = 0;
-      if (isCorrect) {
-        xpEarned = XP_CONFIG.LISTENING_CORRECT;
+      // XP 지급 (정답인 경우)
+      if (correct) {
         await UserLanguageProfile.findOneAndUpdate(
           { userId, targetLanguage },
-          { $inc: { xp: xpEarned } }
+          { $inc: { xp: XP_CONFIG.QUIZ_CORRECT } },
         );
       }
 
-      return ApiResponse.success(res, { isCorrect, xpEarned, correctAnswer: listening.correctAnswer });
-    } catch (err) { next(err); }
+      return ApiResponse.success(res, {
+        correct,
+        correctAnswer: listening.correctAnswer,
+        userAnswer: answer,
+      }, correct ? '정답입니다!' : '오답입니다.');
+    } catch (err) {
+      next(err);
+    }
   };
 }
+
+export default new ListeningController();

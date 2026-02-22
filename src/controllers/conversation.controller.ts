@@ -8,92 +8,103 @@ import UserLanguageProfile from '@/models/UserLanguageProfile';
 import { XP_CONFIG } from '@/utils/constants';
 
 export class ConversationController {
-  /** 회화 목록 */
+  /** 회화 목록 조회 */
   getList = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const targetLanguage = req.user!.activeLanguage;
-      const { level, page = '1', limit = '20' } = req.query;
+      const { targetLanguage, level } = req.query;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const skip = (page - 1) * limit;
 
       const filter: Record<string, any> = { targetLanguage };
       if (level) filter.level = level;
 
-      const pageNum = Number(page);
-      const limitNum = Number(limit);
-
-      const [items, total] = await Promise.all([
-        Conversation.find(filter)
-          .select('-dialogs')
-          .sort({ order: 1 })
-          .skip((pageNum - 1) * limitNum)
-          .limit(limitNum),
+      const [conversations, total] = await Promise.all([
+        Conversation.find(filter).sort({ order: 1 }).skip(skip).limit(limit),
         Conversation.countDocuments(filter),
       ]);
 
-      const progress = await UserProgress.findOne({ userId: req.user!._id, targetLanguage });
-      const statusMap = new Map(
-        (progress?.conversationStatus || []).map((c: any) => [c.contentId.toString(), c])
-      );
-
-      const data = items.map(item => ({
-        ...item.toJSON(),
-        practiced: !!statusMap.get(item._id.toString()),
-        practiceCount: statusMap.get(item._id.toString())?.correctCount || 0,
-      }));
-
-      return ApiResponse.paginated(res, data, total, pageNum, limitNum);
-    } catch (err) { next(err); }
+      return ApiResponse.paginated(res, conversations, {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      });
+    } catch (err) {
+      next(err);
+    }
   };
 
-  /** 회화 상세 (다이얼로그 포함) */
+  /** 회화 상세 조회 */
   getDetail = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const item = await Conversation.findById(req.params.id);
-      if (!item) throw ApiError.notFound('회화를 찾을 수 없습니다.');
-      return ApiResponse.success(res, item);
-    } catch (err) { next(err); }
+      const conversation = await Conversation.findById(req.params.id);
+      if (!conversation) throw ApiError.notFound('회화를 찾을 수 없습니다.');
+
+      return ApiResponse.success(res, {
+        conversation: {
+          ...conversation.toObject(),
+          dialogs: conversation.dialogs,
+          keyExpressions: conversation.keyExpressions,
+        },
+      }, '회화 상세 조회 성공');
+    } catch (err) {
+      next(err);
+    }
   };
 
-  /** 회화 연습 완료 */
+  /** 회화 연습 결과 제출 */
   submitPractice = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!._id;
-      const targetLanguage = req.user!.activeLanguage;
-      const conversationId = req.params.id;
-      const { score } = req.body; // 0-100
+      const userId = req.user._id;
+      const { conversationId, pronunciationScore } = req.body;
+      const { targetLanguage } = req.query;
 
       const conversation = await Conversation.findById(conversationId);
       if (!conversation) throw ApiError.notFound('회화를 찾을 수 없습니다.');
 
-      const progress = await UserProgress.findOne({ userId, targetLanguage });
-      if (!progress) throw ApiError.notFound('학습 진행도를 찾을 수 없습니다.');
+      let userProgress = await UserProgress.findOne({ userId, targetLanguage });
+      if (!userProgress) {
+        userProgress = await UserProgress.create({ userId, targetLanguage });
+      }
 
-      const existing = progress.conversationStatus.find(
-        (c: any) => c.contentId.toString() === conversationId
+      const statusIndex = userProgress.conversationStatus.findIndex(
+        (c) => c.conversationId.toString() === conversationId,
       );
 
-      if (existing) {
-        existing.correctCount += 1;
-        existing.lastStudiedAt = new Date();
-        if (score >= 80) existing.mastered = true;
+      if (statusIndex >= 0) {
+        const entry = userProgress.conversationStatus[statusIndex];
+        entry.completed = true;
+        entry.pronunciationScore = Math.max(entry.pronunciationScore, pronunciationScore);
+        entry.lastReviewedAt = new Date();
       } else {
-        progress.conversationStatus.push({
-          contentId: conversationId as any,
-          mastered: score >= 80,
-          correctCount: 1,
-          wrongCount: 0,
-          lastStudiedAt: new Date(),
+        userProgress.conversationStatus.push({
+          conversationId,
+          completed: true,
+          pronunciationScore,
+          lastReviewedAt: new Date(),
         });
       }
 
-      await progress.save();
+      await userProgress.save();
 
-      const xpEarned = XP_CONFIG.CONVERSATION_PRACTICE;
+      // XP 지급
       await UserLanguageProfile.findOneAndUpdate(
         { userId, targetLanguage },
-        { $inc: { xp: xpEarned } }
+        { $inc: { xp: XP_CONFIG.QUIZ_CORRECT } },
       );
 
-      return ApiResponse.success(res, { score, xpEarned });
-    } catch (err) { next(err); }
+      return ApiResponse.success(res, {
+        conversationId,
+        pronunciationScore,
+        conversationStatus: userProgress.conversationStatus.find(
+          (c) => c.conversationId.toString() === conversationId,
+        ),
+      }, '회화 연습 결과 제출 완료');
+    } catch (err) {
+      next(err);
+    }
   };
 }
+
+export default new ConversationController();

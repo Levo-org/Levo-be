@@ -8,77 +8,102 @@ import UserLanguageProfile from '@/models/UserLanguageProfile';
 import { XP_CONFIG } from '@/utils/constants';
 
 export class ReadingController {
-  /** 읽기 목록 */
+  /** 읽기 지문 목록 조회 */
   getList = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const targetLanguage = req.user!.activeLanguage;
-      const { level, page = '1', limit = '20' } = req.query;
+      const { targetLanguage, difficulty } = req.query;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const skip = (page - 1) * limit;
 
       const filter: Record<string, any> = { targetLanguage };
-      if (level) filter.level = level;
+      if (difficulty) filter.difficulty = difficulty;
 
-      const pageNum = Number(page);
-      const limitNum = Number(limit);
-
-      const [items, total] = await Promise.all([
-        Reading.find(filter)
-          .select('-content -quizzes')
-          .sort({ order: 1 })
-          .skip((pageNum - 1) * limitNum)
-          .limit(limitNum),
+      const [readings, total] = await Promise.all([
+        Reading.find(filter).sort({ order: 1 }).skip(skip).limit(limit),
         Reading.countDocuments(filter),
       ]);
 
-      return ApiResponse.paginated(res, items, total, pageNum, limitNum);
-    } catch (err) { next(err); }
+      return ApiResponse.paginated(res, readings, {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      });
+    } catch (err) {
+      next(err);
+    }
   };
 
-  /** 읽기 상세 (본문 + 퀴즈) */
+  /** 읽기 상세 조회 */
   getDetail = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const item = await Reading.findById(req.params.id);
-      if (!item) throw ApiError.notFound('읽기를 찾을 수 없습니다.');
-      return ApiResponse.success(res, item);
-    } catch (err) { next(err); }
+      const reading = await Reading.findById(req.params.id);
+      if (!reading) throw ApiError.notFound('읽기 지문을 찾을 수 없습니다.');
+
+      return ApiResponse.success(res, {
+        reading: {
+          ...reading.toObject(),
+          content: reading.content,
+          quizzes: reading.quizzes,
+        },
+      }, '읽기 상세 조회 성공');
+    } catch (err) {
+      next(err);
+    }
   };
 
-  /** 읽기 퀴즈 정답 제출 */
+  /** 읽기 퀴즈 답변 제출 */
   submitQuizAnswer = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!._id;
-      const targetLanguage = req.user!.activeLanguage;
-      const readingId = req.params.id;
-      const { quizIndex, answer, isCorrect } = req.body;
+      const userId = req.user._id;
+      const { readingId, quizIndex, answer } = req.body;
+      const { targetLanguage } = req.query;
 
       const reading = await Reading.findById(readingId);
-      if (!reading) throw ApiError.notFound('읽기를 찾을 수 없습니다.');
+      if (!reading) throw ApiError.notFound('읽기 지문을 찾을 수 없습니다.');
 
-      const progress = await UserProgress.findOne({ userId, targetLanguage });
-      if (!progress) throw ApiError.notFound('학습 진행도를 찾을 수 없습니다.');
-
-      if (!isCorrect) {
-        const quiz = reading.quizzes[quizIndex];
-        progress.wrongAnswers.push({
-          category: 'reading',
-          contentId: readingId as any,
-          question: quiz?.question || '',
-          userAnswer: answer,
-          correctAnswer: quiz?.correctAnswer || '',
-          reviewedAt: null,
-        });
+      if (!reading.quizzes[quizIndex]) {
+        throw ApiError.badRequest('유효하지 않은 퀴즈 인덱스입니다.');
       }
-      await progress.save();
 
-      let xpEarned = 0;
-      if (isCorrect) {
-        xpEarned = XP_CONFIG.READING_CORRECT;
+      const quiz = reading.quizzes[quizIndex];
+      const correct = answer === quiz.correctAnswer;
+
+      let userProgress = await UserProgress.findOne({ userId, targetLanguage });
+      if (!userProgress) {
+        userProgress = await UserProgress.create({ userId, targetLanguage });
+      }
+
+      if (!correct) {
+        userProgress.wrongAnswers.push({
+          type: 'reading',
+          contentId: reading._id,
+          question: quiz.question,
+          userAnswer: String(answer),
+          correctAnswer: String(quiz.correctAnswer),
+          createdAt: new Date(),
+        });
+        await userProgress.save();
+      }
+
+      // XP 지급 (정답인 경우)
+      if (correct) {
         await UserLanguageProfile.findOneAndUpdate(
           { userId, targetLanguage },
-          { $inc: { xp: xpEarned } }
+          { $inc: { xp: XP_CONFIG.QUIZ_CORRECT } },
         );
       }
 
-      return ApiResponse.success(res, { isCorrect, xpEarned });
-    } catch (err) { next(err); }
+      return ApiResponse.success(res, {
+        correct,
+        correctAnswer: quiz.correctAnswer,
+        explanation: quiz.explanation,
+      }, correct ? '정답입니다!' : '오답입니다.');
+    } catch (err) {
+      next(err);
+    }
   };
 }
+
+export default new ReadingController();

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Levo - Google 로그인 테스트</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .logo h1 {
+      font-size: 32px;
+      color: #6C5CE7;
+      margin-bottom: 5px;
+    }
+    .logo p {
+      color: #888;
+      font-size: 14px;
+    }
+    .section {
+      margin-bottom: 25px;
+    }
+    .section h2 {
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section h2 .badge {
+      background: #6C5CE7;
+      color: white;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      justify-content: center;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .btn:active { transform: translateY(0); }
+    .btn-google {
+      background: white;
+      color: #333;
+      border: 2px solid #ddd;
+    }
+    .btn-google img { width: 20px; height: 20px; }
+    .btn-dev {
+      background: #6C5CE7;
+      color: white;
+    }
+    .btn-dev:hover { background: #5a4bd1; }
+    .btn-copy {
+      background: #00b894;
+      color: white;
+      padding: 8px 16px;
+      font-size: 13px;
+      width: auto;
+    }
+    .btn-swagger {
+      background: #85EA2D;
+      color: #173647;
+      margin-top: 10px;
+    }
+    .divider {
+      text-align: center;
+      margin: 20px 0;
+      color: #aaa;
+      font-size: 13px;
+      position: relative;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 40%;
+      height: 1px;
+      background: #ddd;
+    }
+    .divider::before { left: 0; }
+    .divider::after { right: 0; }
+    .result {
+      display: none;
+      margin-top: 20px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 12px;
+      border: 1px solid #e9ecef;
+    }
+    .result.show { display: block; }
+    .result .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #e9ecef;
+    }
+    .result .user-info img {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #ddd;
+    }
+    .result .user-info .details h3 { font-size: 16px; color: #333; }
+    .result .user-info .details p { font-size: 13px; color: #888; }
+    .token-box {
+      margin-top: 10px;
+    }
+    .token-box label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6C5CE7;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .token-box .token-field {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .token-box textarea {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 11px;
+      resize: none;
+      height: 60px;
+      background: white;
+      color: #333;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+    .status.success { display: block; background: #d4edda; color: #155724; }
+    .status.error { display: block; background: #f8d7da; color: #721c24; }
+    .status.info { display: block; background: #d1ecf1; color: #0c5460; }
+    .dev-form {
+      margin-top: 10px;
+    }
+    .dev-form input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .dev-form input:focus {
+      outline: none;
+      border-color: #6C5CE7;
+      box-shadow: 0 0 0 3px rgba(108,92,231,0.1);
+    }
+    .swagger-hint {
+      margin-top: 15px;
+      padding: 12px;
+      background: #FFF3CD;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #856404;
+      line-height: 1.5;
+    }
+    .swagger-hint code {
+      background: rgba(0,0,0,0.06);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <h1>🎓 Levo</h1>
+      <p>API 인증 테스트 페이지</p>
+    </div>
+
+    <!-- Google Login -->
+    <div class="section">
+      <h2>Google 로그인 <span class="badge">OAuth 2.0</span></h2>
+      <div id="g_id_onload"
+           data-client_id=""
+           data-callback="handleGoogleCallback"
+           data-auto_prompt="false">
+      </div>
+      <button id="googleBtn" class="btn btn-google">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+        Google 계정으로 로그인
+      </button>
+    </div>
+
+    <div class="divider">또는</div>
+
+    <!-- Dev Login -->
+    <div class="section">
+      <h2>개발용 로그인 <span class="badge">DEV</span></h2>
+      <div class="dev-form">
+        <input type="email" id="devEmail" placeholder="이메일 (기본: test@levo.com)" value="test@levo.com">
+        <input type="text" id="devName" placeholder="이름 (기본: 테스트유저)" value="테스트유저">
+        <button id="devBtn" class="btn btn-dev">🔑 개발용 토큰 발급</button>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div id="status" class="status"></div>
+
+    <!-- Result -->
+    <div id="result" class="result">
+      <div class="user-info">
+        <img id="userAvatar" src="" alt="avatar" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%236C5CE7%22 width=%22100%22 height=%22100%22/><text fill=%22white%22 font-size=%2240%22 x=%2250%22 y=%2265%22 text-anchor=%22middle%22>L</text></svg>'">
+        <div class="details">
+          <h3 id="userName">-</h3>
+          <p id="userEmail">-</p>
+        </div>
+      </div>
+
+      <div class="token-box">
+        <label>🔐 Access Token (Swagger에 사용)</label>
+        <div class="token-field">
+          <textarea id="accessToken" readonly></textarea>
+          <button class="btn btn-copy" data-copy="accessToken">복사</button>
+        </div>
+      </div>
+
+      <div class="token-box" style="margin-top: 12px;">
+        <label>🔄 Refresh Token</label>
+        <div class="token-field">
+          <textarea id="refreshToken" readonly></textarea>
+          <button class="btn btn-copy" data-copy="refreshToken">복사</button>
+        </div>
+      </div>
+
+      <div class="swagger-hint">
+        💡 <strong>Swagger에서 사용하는 법:</strong><br>
+        1. Access Token을 복사하세요<br>
+        2. <a href="/api-docs" target="_blank">Swagger UI</a>를 열어주세요<br>
+        3. 우측 상단 <code>Authorize 🔓</code> 버튼 클릭<br>
+        4. <code>Bearer {토큰}</code> 형식으로 입력 (Bearer 포함!)
+      </div>
+
+      <a href="/api-docs" target="_blank">
+        <button class="btn btn-swagger">📖 Swagger UI 열기 →</button>
+      </a>
+    </div>
+  </div>
+
+  <!-- Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="/auth-test.js"></script>
+</body>
+</html>

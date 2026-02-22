@@ -1,95 +1,103 @@
+// @ts-nocheck
 import { Request, Response, NextFunction } from 'express';
-import { ApiResponse } from '@/utils/ApiResponse';
 import User from '@/models/User';
 import UserLanguageProfile from '@/models/UserLanguageProfile';
 import UserStreak from '@/models/UserStreak';
 import UserProgress from '@/models/UserProgress';
 import Lesson from '@/models/Lesson';
+import { ApiResponse } from '@/utils/ApiResponse';
+import { ApiError } from '@/utils/ApiError';
+
+/** KST 기준 오늘 날짜 (YYYY-MM-DD) */
+const getKSTDate = () => {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return kst.toISOString().split('T')[0];
+};
 
 export class HomeController {
-  /** 홈 화면 데이터 */
+  /** GET 홈 화면 데이터 */
   getHome = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!._id;
-      const targetLanguage = req.user!.activeLanguage;
+      const userId = req.user._id;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user.activeLanguage;
 
+      // 병렬 조회
       const [user, profile, streak, progress] = await Promise.all([
-        User.findById(userId),
-        UserLanguageProfile.findOne({ userId, targetLanguage }),
-        UserStreak.findOne({ userId, targetLanguage }),
-        UserProgress.findOne({ userId, targetLanguage }),
+        User.findById(userId).lean(),
+        UserLanguageProfile.findOne({ userId, targetLanguage }).lean(),
+        UserStreak.findOne({ userId, targetLanguage }).lean(),
+        UserProgress.findOne({ userId, targetLanguage }).lean(),
       ]);
 
-      if (!profile) {
-        return ApiResponse.success(res, { needsOnboarding: true });
+      if (!user) throw ApiError.notFound('사용자를 찾을 수 없습니다.');
+
+      // 다음 학습할 레슨
+      let nextLesson = null;
+      if (progress?.currentLessonId) {
+        nextLesson = await Lesson.findById(progress.currentLessonId).lean();
       }
 
-      // 오늘 학습 여부
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayStr = today.toISOString().split('T')[0];
-      const todayCompleted = streak?.weeklyRecord?.some(
-        (w: any) => new Date(w.date).toISOString().split('T')[0] === todayStr && w.completed
-      ) || false;
+      // currentLessonId가 없으면 첫 미완료 레슨 추천
+      if (!nextLesson) {
+        const completedSet = new Set(
+          (progress?.completedLessons || []).map((id) => id.toString()),
+        );
+        const allLessons = await Lesson.find({ targetLanguage }).sort({ order: 1 }).lean();
+        nextLesson = allLessons.find(
+          (l) => !completedSet.has(l._id.toString()),
+        ) || null;
+      }
 
-      // 다음 레슨
-      const completedLessonIds = (progress?.completedLessons || []).map(
-        (cl: any) => cl.lessonId.toString()
-      );
-
-      const nextLesson = await Lesson.findOne({
-        targetLanguage,
-        _id: { $nin: completedLessonIds },
-      }).sort({ unitNumber: 1, lessonNumber: 1 });
-
-      // 복습 필요 항목 수
-      const unreviewedWrong = (progress?.wrongAnswers || []).filter((w: any) => !w.reviewedAt).length;
-
-      // 카테고리별 진행률
-      const categories = [
-        { key: 'vocabulary', emoji: '📝', name: '단어', progress: profile.vocabularyProgress || 0 },
-        { key: 'grammar', emoji: '📖', name: '문법', progress: profile.grammarProgress || 0 },
-        { key: 'conversation', emoji: '💬', name: '회화', progress: profile.conversationProgress || 0 },
-        { key: 'listening', emoji: '🎧', name: '듣기', progress: profile.listeningProgress || 0 },
-        { key: 'reading', emoji: '📚', name: '읽기', progress: profile.readingProgress || 0 },
-        { key: 'quiz', emoji: '🧩', name: '퀴즈', progress: profile.quizProgress || 0 },
-      ];
+      const today = getKSTDate();
+      const todayStudied = streak?.lastStudyDate === today;
 
       return ApiResponse.success(res, {
         user: {
-          name: user?.name,
-          profileImage: user?.profileImage,
-          isPremium: user?.isPremium,
-          coins: user?.coins,
+          name: user.name,
+          profileImage: user.profileImage,
+          coins: user.coins || 0,
+          isPremium: user.isPremium || false,
         },
-        language: {
-          targetLanguage,
+        profile: profile ? {
           level: profile.level,
           userLevel: profile.userLevel,
           xp: profile.xp,
-        },
-        hearts: {
-          current: profile.hearts,
-          max: 5,
-          isPremium: user?.isPremium,
-        },
-        streak: {
-          current: streak?.currentStreak || 0,
-          todayCompleted,
-        },
-        dailyGoal: {
-          minutes: user?.settings?.dailyGoalMinutes || 15,
-          completed: todayCompleted,
+          hearts: profile.hearts,
+          vocabularyProgress: profile.vocabularyProgress,
+          grammarProgress: profile.grammarProgress,
+          conversationProgress: profile.conversationProgress,
+          listeningProgress: profile.listeningProgress,
+          readingProgress: profile.readingProgress,
+        } : null,
+        streak: streak ? {
+          currentStreak: streak.currentStreak,
+          longestStreak: streak.longestStreak,
+          todayCompleted: todayStudied,
+        } : {
+          currentStreak: 0,
+          longestStreak: 0,
+          todayCompleted: false,
         },
         nextLesson: nextLesson ? {
-          id: nextLesson._id,
+          _id: nextLesson._id,
           unitNumber: nextLesson.unitNumber,
           unitTitle: nextLesson.unitTitle,
           lessonNumber: nextLesson.lessonNumber,
+          lessonTitle: nextLesson.lessonTitle,
+          estimatedMinutes: nextLesson.estimatedMinutes,
+          xpReward: nextLesson.xpReward,
         } : null,
-        reviewCount: unreviewedWrong,
-        categories,
-      });
-    } catch (err) { next(err); }
+        todaySummary: {
+          studied: todayStudied,
+          completedLessons: progress?.completedLessons?.length || 0,
+          learnedWords: (progress?.vocabularyStatus || []).filter(
+            (v) => v.status === 'completed',
+          ).length,
+        },
+      }, '홈 화면 조회 성공');
+    } catch (err) {
+      next(err);
+    }
   };
 }

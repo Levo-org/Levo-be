@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  mongo:
+    image: mongo:6.0
+    container_name: levo-mongo
+    restart: always
+    ports:
+      - "127.0.0.1:27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: levo1234
+    volumes:
+      - mongo-data:/data/db
+volumes:
+  mongo-data:

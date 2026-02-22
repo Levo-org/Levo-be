@@ -1,156 +1,143 @@
 // @ts-nocheck
 import { Request, Response, NextFunction } from 'express';
-import { ApiResponse } from '@/utils/ApiResponse';
-import { ApiError } from '@/utils/ApiError';
 import UserStreak from '@/models/UserStreak';
 import UserLanguageProfile from '@/models/UserLanguageProfile';
+import { ApiResponse } from '@/utils/ApiResponse';
+import { ApiError } from '@/utils/ApiError';
+
+/** KST 기준 오늘 날짜 (YYYY-MM-DD) */
+const getKSTDate = () => {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return kst.toISOString().split('T')[0];
+};
+
+/** KST 기준 어제 날짜 (YYYY-MM-DD) */
+const getKSTYesterday = () => {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000 - 24 * 60 * 60 * 1000);
+  return kst.toISOString().split('T')[0];
+};
 
 export class StreakController {
-  /** 스트릭 상태 조회 */
+  /** GET 스트릭 상태 조회 */
   getStatus = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!._id;
-      const targetLanguage = req.user!.activeLanguage;
+      const userId = req.user._id;
+      const targetLanguage = req.user.activeLanguage || req.query.targetLanguage;
 
       let streak = await UserStreak.findOne({ userId, targetLanguage });
       if (!streak) {
-        streak = await UserStreak.create({ userId, targetLanguage });
-      }
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayStr = today.toISOString().split('T')[0];
-
-      const dayOfWeek = today.getDay(); // 0=일 ~ 6=토
-      const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - dayOfWeek);
-
-      // 이번 주 기록
-      const weeklyRecord = [];
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(weekStart);
-        d.setDate(weekStart.getDate() + i);
-        const dateStr = d.toISOString().split('T')[0];
-        weeklyRecord.push({
-          date: dateStr,
-          completed: streak.weeklyRecord?.some(
-            (w: any) => new Date(w.date).toISOString().split('T')[0] === dateStr && w.completed
-          ) || false,
+        streak = await UserStreak.create({
+          userId,
+          targetLanguage,
+          currentStreak: 0,
+          longestStreak: 0,
+          lastStudyDate: null,
+          weeklyRecord: {},
+          streakShields: 0,
+          shieldUsedDates: [],
         });
       }
 
-      // 스트릭 유지 확인 (어제 학습 안 했으면 리셋, 단 쉴드 사용 가능)
-      const lastStudy = streak.lastStudyDate ? new Date(streak.lastStudyDate) : null;
-      let isActive = false;
-      if (lastStudy) {
-        lastStudy.setHours(0, 0, 0, 0);
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
-        const lastStudyStr = lastStudy.toISOString().split('T')[0];
-        isActive = lastStudyStr === todayStr || lastStudyStr === yesterdayStr;
+      const today = getKSTDate();
+      const yesterday = getKSTYesterday();
+
+      // 스트릭 리셋 여부 확인: 마지막 학습일이 오늘도 어제도 아닌 경우
+      if (
+        streak.lastStudyDate &&
+        streak.lastStudyDate !== today &&
+        streak.lastStudyDate !== yesterday
+      ) {
+        // 쉴드가 없으면 스트릭 초기화
+        if (streak.streakShields <= 0) {
+          streak.currentStreak = 0;
+          await streak.save();
+        }
       }
 
       const profile = await UserLanguageProfile.findOne({ userId, targetLanguage });
 
       return ApiResponse.success(res, {
-        currentStreak: isActive ? streak.currentStreak : 0,
+        currentStreak: streak.currentStreak,
         longestStreak: streak.longestStreak,
         lastStudyDate: streak.lastStudyDate,
-        weeklyRecord,
-        streakShields: profile?.streakShields || 0,
-        todayCompleted: streak.weeklyRecord?.some(
-          (w: any) => new Date(w.date).toISOString().split('T')[0] === todayStr && w.completed
-        ) || false,
-      });
-    } catch (err) { next(err); }
+        weeklyRecord: streak.weeklyRecord,
+        streakShields: profile?.streakShields ?? 0,
+      }, '스트릭 조회 성공');
+    } catch (err) {
+      next(err);
+    }
   };
 
-  /** 스트릭 쉴드 사용 */
+  /** POST 스트릭 쉴드 사용 */
   useShield = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!._id;
-      const targetLanguage = req.user!.activeLanguage;
+      const userId = req.user._id;
+      const targetLanguage = req.user.activeLanguage || req.query.targetLanguage;
 
       const profile = await UserLanguageProfile.findOne({ userId, targetLanguage });
       if (!profile) throw ApiError.notFound('언어 프로필을 찾을 수 없습니다.');
 
-      if ((profile.streakShields || 0) <= 0) {
-        throw ApiError.badRequest('스트릭 쉴드가 없습니다.');
+      if (profile.streakShields <= 0) {
+        throw ApiError.badRequest('사용 가능한 스트릭 쉴드가 없습니다.');
       }
 
-      const streak = await UserStreak.findOne({ userId, targetLanguage });
-      if (!streak) throw ApiError.notFound('스트릭을 찾을 수 없습니다.');
-
-      // 쉴드 사용
-      profile.streakShields = (profile.streakShields || 0) - 1;
+      profile.streakShields -= 1;
       await profile.save();
 
-      // 어제 날짜로 쉴드 사용 기록
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      yesterday.setHours(0, 0, 0, 0);
-
-      if (!streak.shieldUsedDates) streak.shieldUsedDates = [];
-      streak.shieldUsedDates.push(yesterday);
-      streak.lastStudyDate = yesterday; // 쉴드로 스트릭 유지
-      await streak.save();
+      const streak = await UserStreak.findOne({ userId, targetLanguage });
+      if (streak) {
+        const today = getKSTDate();
+        if (!streak.shieldUsedDates) streak.shieldUsedDates = [];
+        streak.shieldUsedDates.push(today);
+        await streak.save();
+      }
 
       return ApiResponse.success(res, {
         streakShields: profile.streakShields,
-        currentStreak: streak.currentStreak,
-        message: '스트릭 쉴드를 사용했습니다!',
-      });
-    } catch (err) { next(err); }
+      }, '스트릭 쉴드 사용 완료');
+    } catch (err) {
+      next(err);
+    }
   };
 
-  /** 스트릭 기록 (내부 호출용) - 학습 완료 시 호출 */
+  /** 학습 활동 완료 시 내부적으로 호출 */
   static recordStudy = async (userId: string, targetLanguage: string) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
+    const today = getKSTDate();
 
     let streak = await UserStreak.findOne({ userId, targetLanguage });
     if (!streak) {
-      streak = await UserStreak.create({ userId, targetLanguage });
+      streak = await UserStreak.create({
+        userId,
+        targetLanguage,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastStudyDate: null,
+        weeklyRecord: {},
+        streakShields: 0,
+        shieldUsedDates: [],
+      });
     }
 
-    // 오늘 이미 기록됨
-    const alreadyRecorded = streak.weeklyRecord?.some(
-      (w: any) => new Date(w.date).toISOString().split('T')[0] === todayStr && w.completed
-    );
+    if (streak.lastStudyDate !== today) {
+      streak.currentStreak += 1;
 
-    if (alreadyRecorded) return streak;
-
-    // 주간 기록 추가
-    if (!streak.weeklyRecord) streak.weeklyRecord = [];
-    streak.weeklyRecord.push({ date: today, completed: true });
-
-    // 스트릭 계산
-    const lastStudy = streak.lastStudyDate ? new Date(streak.lastStudyDate) : null;
-    if (lastStudy) {
-      lastStudy.setHours(0, 0, 0, 0);
-      const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-      const lastStudyStr = lastStudy.toISOString().split('T')[0];
-
-      if (lastStudyStr === yesterdayStr) {
-        streak.currentStreak += 1;
-      } else if (lastStudyStr !== todayStr) {
-        streak.currentStreak = 1; // 리셋
+      if (streak.currentStreak > streak.longestStreak) {
+        streak.longestStreak = streak.currentStreak;
       }
-    } else {
-      streak.currentStreak = 1;
+
+      streak.lastStudyDate = today;
     }
 
-    if (streak.currentStreak > streak.longestStreak) {
-      streak.longestStreak = streak.currentStreak;
-    }
+    // 주간 기록 업데이트 (요일 키: 0=일 ~ 6=토)
+    const now = new Date();
+    const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    const dayOfWeek = kstNow.getDay().toString();
 
-    streak.lastStudyDate = today;
+    if (!streak.weeklyRecord) streak.weeklyRecord = {};
+    streak.weeklyRecord[dayOfWeek] = true;
+
     await streak.save();
-
-    return streak;
   };
 }

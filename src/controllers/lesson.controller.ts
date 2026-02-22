@@ -1,164 +1,203 @@
 // @ts-nocheck
 import { Request, Response, NextFunction } from 'express';
-import { ApiResponse } from '@/utils/ApiResponse';
-import { ApiError } from '@/utils/ApiError';
 import Lesson from '@/models/Lesson';
 import UserProgress from '@/models/UserProgress';
 import UserLanguageProfile from '@/models/UserLanguageProfile';
 import User from '@/models/User';
 import CoinTransaction from '@/models/CoinTransaction';
 import { XP_CONFIG, COIN_CONFIG } from '@/utils/constants';
+import { ApiResponse } from '@/utils/ApiResponse';
+import { ApiError } from '@/utils/ApiError';
+import { StreakController } from '@/controllers/streak.controller';
 
 export class LessonController {
-  /** 레슨 목록 (유닛 구조) */
+  /** GET 레슨 맵 (유닛별 레슨 목록 + 잠금 상태) */
   getList = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const targetLanguage = req.user!.activeLanguage;
-      const { unit } = req.query;
+      const userId = req.user._id;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user.activeLanguage;
 
-      const filter: Record<string, any> = { targetLanguage };
-      if (unit) filter.unitNumber = Number(unit);
+      const lessons = await Lesson.find({ targetLanguage }).sort({ order: 1 }).lean();
 
-      const lessons = await Lesson.find(filter).sort({ unitNumber: 1, lessonNumber: 1 });
-
-      const progress = await UserProgress.findOne({
-        userId: req.user!._id,
-        targetLanguage,
-      });
-
+      const progress = await UserProgress.findOne({ userId, targetLanguage });
       const completedSet = new Set(
-        (progress?.completedLessons || []).map((cl: any) => cl.lessonId.toString())
+        (progress?.completedLessons || []).map((id) => id.toString()),
       );
 
-      const data = lessons.map((lesson, idx) => {
-        const isCompleted = completedSet.has(lesson._id.toString());
-        // 첫 번째 레슨 또는 이전 레슨 완료시 잠금 해제
-        const prevLesson = idx > 0 ? lessons[idx - 1] : null;
-        const isLocked = idx > 0 && prevLesson && !completedSet.has(prevLesson._id.toString());
+      const lessonsWithStatus = lessons.map((lesson) => {
+        let status: 'completed' | 'current' | 'locked';
 
-        return {
-          ...lesson.toJSON(),
-          isCompleted,
-          isLocked,
-        };
+        if (completedSet.has(lesson._id.toString())) {
+          status = 'completed';
+        } else if (
+          !lesson.prerequisiteLessonId ||
+          completedSet.has(lesson.prerequisiteLessonId.toString())
+        ) {
+          status = 'current';
+        } else {
+          status = 'locked';
+        }
+
+        return { ...lesson, status };
       });
 
       // 유닛별 그룹핑
-      const units: Record<number, any> = {};
-      data.forEach(l => {
-        if (!units[l.unitNumber]) {
-          units[l.unitNumber] = {
-            unitNumber: l.unitNumber,
-            unitTitle: l.unitTitle,
+      const units: Record<number, { unitNumber: number; unitTitle: string; lessons: any[] }> = {};
+      for (const lesson of lessonsWithStatus) {
+        if (!units[lesson.unitNumber]) {
+          units[lesson.unitNumber] = {
+            unitNumber: lesson.unitNumber,
+            unitTitle: lesson.unitTitle,
             lessons: [],
           };
         }
-        units[l.unitNumber].lessons.push(l);
-      });
+        units[lesson.unitNumber].lessons.push(lesson);
+      }
 
-      return ApiResponse.success(res, { units: Object.values(units) });
-    } catch (err) { next(err); }
+      const result = Object.values(units).sort((a, b) => a.unitNumber - b.unitNumber);
+
+      return ApiResponse.success(res, result, '레슨 맵 조회 성공');
+    } catch (err) {
+      next(err);
+    }
   };
 
-  /** 레슨 상세 (퀴즈 포함) */
+  /** GET 레슨 상세 조회 (퀴즈 포함) */
   getDetail = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const lesson = await Lesson.findById(req.params.id);
+      const { id } = req.params;
+
+      const lesson = await Lesson.findById(id)
+        .populate('newWords')
+        .populate('grammarPoints')
+        .lean();
+
       if (!lesson) throw ApiError.notFound('레슨을 찾을 수 없습니다.');
-      return ApiResponse.success(res, lesson);
-    } catch (err) { next(err); }
+
+      return ApiResponse.success(res, lesson, '레슨 상세 조회 성공');
+    } catch (err) {
+      next(err);
+    }
   };
 
-  /** 레슨 시작 */
+  /** POST 레슨 시작 */
   start = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const lesson = await Lesson.findById(req.params.id);
+      const userId = req.user._id;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user.activeLanguage;
+      const { id } = req.params;
+
+      const lesson = await Lesson.findById(id);
       if (!lesson) throw ApiError.notFound('레슨을 찾을 수 없습니다.');
 
-      // 잠금 확인 (선행 레슨 완료 여부)
-      if (lesson.prerequisiteLessonId) {
-        const progress = await UserProgress.findOne({
-          userId: req.user!._id,
-          targetLanguage: req.user!.activeLanguage,
-        });
-        const completed = (progress?.completedLessons || []).some(
-          (cl: any) => cl.lessonId.toString() === lesson.prerequisiteLessonId?.toString()
-        );
-        if (!completed) {
-          throw ApiError.lessonLocked('선행 레슨을 먼저 완료해주세요.');
-        }
+      const progress = await UserProgress.findOne({ userId, targetLanguage });
+      const completedSet = new Set(
+        (progress?.completedLessons || []).map((lid) => lid.toString()),
+      );
+
+      // 잠금 확인
+      if (
+        lesson.prerequisiteLessonId &&
+        !completedSet.has(lesson.prerequisiteLessonId.toString())
+      ) {
+        throw ApiError.lessonLocked();
       }
 
-      return ApiResponse.success(res, {
-        lessonId: lesson._id,
-        quizzes: lesson.quizzes,
-        xpReward: lesson.xpReward,
-        coinReward: lesson.coinReward,
-      });
-    } catch (err) { next(err); }
+      // currentLessonId 업데이트
+      if (progress) {
+        progress.currentLessonId = lesson._id;
+        await progress.save();
+      } else {
+        await UserProgress.create({
+          userId,
+          targetLanguage,
+          currentLessonId: lesson._id,
+          completedLessons: [],
+        });
+      }
+
+      return ApiResponse.success(res, { lessonId: lesson._id }, '레슨 시작');
+    } catch (err) {
+      next(err);
+    }
   };
 
-  /** 레슨 완료 */
+  /** POST 레슨 완료 */
   complete = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!._id;
-      const targetLanguage = req.user!.activeLanguage;
-      const lessonId = req.params.id;
-      const { correctCount, totalCount, timeTaken } = req.body;
+      const userId = req.user._id;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user.activeLanguage;
+      const { id } = req.params;
+      const { score, correctAnswers, totalQuizzes } = req.body;
 
-      const lesson = await Lesson.findById(lessonId);
+      const lesson = await Lesson.findById(id);
       if (!lesson) throw ApiError.notFound('레슨을 찾을 수 없습니다.');
 
-      // 진행도 업데이트
-      const progress = await UserProgress.findOne({ userId, targetLanguage });
-      if (!progress) throw ApiError.notFound('학습 진행도를 찾을 수 없습니다.');
-
-      const alreadyCompleted = progress.completedLessons.some(
-        (cl: any) => cl.lessonId.toString() === lessonId
-      );
-
-      if (!alreadyCompleted) {
-        progress.completedLessons.push({
-          lessonId: lessonId as any,
-          completedAt: new Date(),
-          score: Math.round((correctCount / totalCount) * 100),
-          timeTaken,
+      // UserProgress 업데이트
+      let progress = await UserProgress.findOne({ userId, targetLanguage });
+      if (!progress) {
+        progress = await UserProgress.create({
+          userId,
+          targetLanguage,
+          completedLessons: [],
+          currentLessonId: null,
         });
-        await progress.save();
       }
 
-      // XP 부여
-      const xpEarned = lesson.xpReward || XP_CONFIG.LESSON_COMPLETE;
-      const profile = await UserLanguageProfile.findOneAndUpdate(
-        { userId, targetLanguage },
-        { $inc: { xp: xpEarned } },
-        { new: true }
-      );
+      if (!progress.completedLessons.map((l) => l.toString()).includes(id)) {
+        progress.completedLessons.push(id);
+      }
+      progress.currentLessonId = null;
+      await progress.save();
 
-      // 코인 부여
-      const coinEarned = lesson.coinReward || COIN_CONFIG.LESSON_COMPLETE;
-      const user = await User.findByIdAndUpdate(
-        userId,
-        { $inc: { coins: coinEarned } },
-        { new: true }
-      );
+      // XP 지급
+      const xpEarned = XP_CONFIG.LESSON_COMPLETE;
+      const profile = await UserLanguageProfile.findOne({ userId, targetLanguage });
+      let leveledUp = false;
+      let newLevel = profile?.userLevel || 1;
 
-      await CoinTransaction.create({
-        userId,
-        type: 'earn',
-        amount: coinEarned,
-        reason: 'lesson_complete',
-        balanceAfter: user!.coins,
-        metadata: { lessonId },
-      });
+      if (profile) {
+        profile.xp += xpEarned;
+        const requiredXp = XP_CONFIG.LEVEL_UP_FORMULA(profile.userLevel);
+        if (profile.xp >= requiredXp) {
+          profile.userLevel += 1;
+          profile.xp -= requiredXp;
+          leveledUp = true;
+          newLevel = profile.userLevel;
+        }
+        await profile.save();
+      }
+
+      // 코인 지급
+      const coinsEarned = lesson.coinReward || COIN_CONFIG.LESSON_COMPLETE;
+      const user = await User.findById(userId);
+      if (user) {
+        user.coins = (user.coins || 0) + coinsEarned;
+        await user.save();
+
+        await CoinTransaction.create({
+          userId,
+          type: 'earn',
+          amount: coinsEarned,
+          reason: 'lesson_complete',
+          balanceAfter: user.coins,
+        });
+      }
+
+      // 스트릭 기록
+      await StreakController.recordStudy(userId.toString(), targetLanguage);
 
       return ApiResponse.success(res, {
         xpEarned,
-        coinEarned,
-        totalXp: profile?.xp,
-        totalCoins: user?.coins,
-        score: Math.round((correctCount / totalCount) * 100),
-      });
-    } catch (err) { next(err); }
+        coinsEarned,
+        leveledUp,
+        newLevel,
+        score,
+        correctAnswers,
+        totalQuizzes,
+      }, '레슨 완료');
+    } catch (err) {
+      next(err);
+    }
   };
 }

@@ -1,10 +1,12 @@
 import express from 'express';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 
 import { swaggerSpec } from '@/config/swagger';
+import { config } from '@/config';
 import { apiLimiter } from '@/middleware/rateLimiter';
 import { errorHandler } from '@/middleware/errorHandler';
 import routes from '@/routes';
@@ -12,7 +14,19 @@ import routes from '@/routes';
 const app = express();
 
 // ─── Security ───────────────────────────────────────
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://accounts.google.com", "https://apis.google.com", "https://www.gstatic.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://accounts.google.com"],
+      frameSrc: ["'self'", "https://accounts.google.com"],
+      imgSrc: ["'self'", "data:", "https:", "http:"],
+      connectSrc: ["'self'", "https://accounts.google.com"],
+    },
+  },
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+}));
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   credentials: true,
@@ -27,6 +41,15 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // ─── Rate Limiting ──────────────────────────────────
 app.use('/api', apiLimiter);
+
+// ─── Static Files & Auth Test Page ──────────────────
+app.use(express.static(path.join(__dirname, '..', 'public')));
+app.get('/auth-test', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'auth-test.html'));
+});
+app.get('/auth-config', (_req, res) => {
+  res.json({ googleClientId: config.oauth.googleClientId });
+});
 
 // ─── Swagger UI ─────────────────────────────────────
 app.use(

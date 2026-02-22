@@ -1,92 +1,113 @@
 // @ts-nocheck
 import { Request, Response, NextFunction } from 'express';
-import { ApiResponse } from '@/utils/ApiResponse';
 import Badge from '@/models/Badge';
 import UserBadge from '@/models/UserBadge';
+import UserStreak from '@/models/UserStreak';
+import UserLanguageProfile from '@/models/UserLanguageProfile';
+import UserProgress from '@/models/UserProgress';
+import { ApiResponse } from '@/utils/ApiResponse';
+import { ApiError } from '@/utils/ApiError';
 
 export class BadgeController {
-  /** 배지 목록 (획득 상태 포함) */
+  /** GET 전체 뱃지 목록 + 사용자 달성 상태 */
   getList = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!._id;
-      const targetLanguage = req.user!.activeLanguage;
-      const { category } = req.query;
+      const userId = req.user._id;
+      const targetLanguage = req.user.activeLanguage || req.query.targetLanguage;
 
-      const filter: Record<string, any> = {};
-      if (category) filter.category = category;
+      const allBadges = await Badge.find().lean();
+      const userBadges = await UserBadge.find({ userId, targetLanguage }).lean();
 
-      const badges = await Badge.find(filter).sort({ category: 1, 'condition.value': 1 });
+      const achievedIds = new Set(userBadges.map((ub: any) => ub.badgeId.toString()));
 
-      const userBadges = await UserBadge.find({ userId, targetLanguage });
-      const earnedSet = new Set(userBadges.map(ub => ub.badgeId.toString()));
-
-      const data = badges.map(badge => ({
-        ...badge.toJSON(),
-        earned: earnedSet.has(badge._id.toString()),
-        earnedAt: userBadges.find(ub => ub.badgeId.toString() === badge._id.toString())?.earnedAt || null,
+      const badges = allBadges.map((badge: any) => ({
+        ...badge,
+        achieved: achievedIds.has(badge._id.toString()),
+        achievedAt: userBadges.find(
+          (ub: any) => ub.badgeId.toString() === badge._id.toString()
+        )?.achievedAt || null,
       }));
 
-      // 카테고리별 그룹핑
-      const grouped: Record<string, any[]> = {};
-      data.forEach(b => {
-        if (!grouped[b.category]) grouped[b.category] = [];
-        grouped[b.category].push(b);
-      });
-
-      return ApiResponse.success(res, {
-        badges: data,
-        grouped,
-        totalBadges: badges.length,
-        earnedCount: userBadges.length,
-      });
-    } catch (err) { next(err); }
+      return ApiResponse.success(res, { badges }, '뱃지 목록 조회 성공');
+    } catch (err) {
+      next(err);
+    }
   };
 
-  /** 배지 체크 & 수여 (내부 호출용) */
-  static checkAndAward = async (userId: string, targetLanguage: string, stats: any) => {
-    const allBadges = await Badge.find();
-    const existingBadges = await UserBadge.find({ userId, targetLanguage });
-    const earnedIds = new Set(existingBadges.map(ub => ub.badgeId.toString()));
-    const newBadges: any[] = [];
+  /** 조건 확인 후 뱃지 자동 부여 (내부 호출) */
+  static checkAndAward = async (userId: string, targetLanguage: string) => {
+    try {
+      const allBadges = await Badge.find().lean();
+      const userBadges = await UserBadge.find({ userId, targetLanguage }).lean();
+      const achievedIds = new Set(userBadges.map((ub: any) => ub.badgeId.toString()));
 
-    for (const badge of allBadges) {
-      if (earnedIds.has(badge._id.toString())) continue;
+      const streak = await UserStreak.findOne({ userId, targetLanguage }).lean();
+      const profile = await UserLanguageProfile.findOne({ userId, targetLanguage }).lean();
+      const progress = await UserProgress.find({ userId, targetLanguage }).lean();
 
-      let earned = false;
-      switch (badge.condition.type) {
-        case 'streak_days':
-          earned = (stats.currentStreak || 0) >= badge.condition.value;
-          break;
-        case 'words_learned':
-          earned = (stats.wordsLearned || 0) >= badge.condition.value;
-          break;
-        case 'lessons_completed':
-          earned = (stats.lessonsCompleted || 0) >= badge.condition.value;
-          break;
-        case 'quiz_perfect':
-          earned = (stats.perfectQuizzes || 0) >= badge.condition.value;
-          break;
-        case 'total_xp':
-          earned = (stats.totalXp || 0) >= badge.condition.value;
-          break;
-        case 'grammar_mastered':
-          earned = (stats.grammarMastered || 0) >= badge.condition.value;
-          break;
-        case 'conversation_practiced':
-          earned = (stats.conversationPracticed || 0) >= badge.condition.value;
-          break;
+      // 학습 통계 집계
+      const wordsLearned = progress.filter(
+        (p: any) => p.contentType === 'vocabulary' && p.status === 'completed'
+      ).length;
+      const lessonsCompleted = progress.filter(
+        (p: any) => p.status === 'completed'
+      ).length;
+
+      const newBadges: any[] = [];
+
+      for (const badge of allBadges) {
+        if (achievedIds.has(badge._id.toString())) continue;
+
+        let qualified = false;
+
+        switch (badge.category) {
+          case 'streak': {
+            const currentStreak = streak?.currentStreak ?? 0;
+            if (badge.condition?.streakDays && currentStreak >= badge.condition.streakDays) {
+              qualified = true;
+            }
+            break;
+          }
+
+          case 'learning': {
+            if (badge.condition?.wordsLearned && wordsLearned >= badge.condition.wordsLearned) {
+              qualified = true;
+            }
+            if (badge.condition?.lessonsCompleted && lessonsCompleted >= badge.condition.lessonsCompleted) {
+              qualified = true;
+            }
+            break;
+          }
+
+          case 'level': {
+            const userLevel = profile?.userLevel ?? 1;
+            if (badge.condition?.level && userLevel >= badge.condition.level) {
+              qualified = true;
+            }
+            break;
+          }
+
+          case 'special': {
+            // 특수 뱃지는 별도 로직으로 처리
+            break;
+          }
+        }
+
+        if (qualified) {
+          const created = await UserBadge.create({
+            userId,
+            targetLanguage,
+            badgeId: badge._id,
+            achievedAt: new Date(),
+          });
+          newBadges.push({ ...badge, achievedAt: created.achievedAt });
+        }
       }
 
-      if (earned) {
-        const userBadge = await UserBadge.create({
-          userId,
-          badgeId: badge._id,
-          targetLanguage,
-        });
-        newBadges.push({ ...badge.toJSON(), earnedAt: userBadge.earnedAt });
-      }
+      return newBadges;
+    } catch (err) {
+      console.error('Badge checkAndAward error:', err);
+      return [];
     }
-
-    return newBadges;
   };
 }

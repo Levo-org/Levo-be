@@ -1,108 +1,100 @@
+// @ts-nocheck
 import { Request, Response, NextFunction } from 'express';
+import UserLanguageProfile from '@/models/UserLanguageProfile';
+import UserStreak from '@/models/UserStreak';
+import UserProgress from '@/models/UserProgress';
 import { ApiResponse } from '@/utils/ApiResponse';
 import { ApiError } from '@/utils/ApiError';
-import UserLanguageProfile from '@/models/UserLanguageProfile';
-import UserProgress from '@/models/UserProgress';
-import UserStreak from '@/models/UserStreak';
-import UserBadge from '@/models/UserBadge';
-import CoinTransaction from '@/models/CoinTransaction';
-import Lesson from '@/models/Lesson';
 
 export class StatsController {
-  /** 통계 조회 */
+  /** GET 학습 통계 */
   getStats = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!._id;
-      const targetLanguage = req.user!.activeLanguage;
-      const { period = 'weekly' } = req.query; // weekly, monthly, all
+      const userId = req.user._id;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user.activeLanguage;
+      const period = (req.query.period as string) || 'all'; // week | month | all
 
-      const [profile, progress, streak, badgeCount, lessons] = await Promise.all([
-        UserLanguageProfile.findOne({ userId, targetLanguage }),
-        UserProgress.findOne({ userId, targetLanguage }),
-        UserStreak.findOne({ userId, targetLanguage }),
-        UserBadge.countDocuments({ userId, targetLanguage }),
-        Lesson.countDocuments({ targetLanguage }),
-      ]);
+      // 언어 프로필
+      const profile = await UserLanguageProfile.findOne({ userId, targetLanguage });
+      if (!profile) throw ApiError.notFound('언어 프로필을 찾을 수 없습니다.');
 
-      if (!profile || !progress) {
-        return ApiResponse.success(res, { message: '학습 데이터가 없습니다.' });
-      }
+      // 스트릭
+      const streak = await UserStreak.findOne({ userId, targetLanguage });
 
-      // 학습 항목 통계
-      const vocabularyMastered = progress.vocabularyStatus.filter((v: any) => v.mastered).length;
-      const vocabularyStudied = progress.vocabularyStatus.length;
-      const grammarMastered = progress.grammarStatus.filter((g: any) => g.mastered).length;
-      const grammarStudied = progress.grammarStatus.length;
-      const conversationPracticed = progress.conversationStatus.length;
-      const lessonsCompleted = progress.completedLessons.length;
-      const wrongAnswersTotal = progress.wrongAnswers.length;
-      const wrongAnswersReviewed = progress.wrongAnswers.filter((w: any) => w.reviewedAt).length;
+      // 학습 진도
+      const progress = await UserProgress.findOne({ userId, targetLanguage });
 
-      // 기간별 필터
-      let periodStart: Date | null = null;
-      const now = new Date();
-      if (period === 'weekly') {
-        periodStart = new Date(now);
-        periodStart.setDate(now.getDate() - 7);
-      } else if (period === 'monthly') {
-        periodStart = new Date(now);
-        periodStart.setMonth(now.getMonth() - 1);
-      }
+      // 완료 통계
+      const completedLessons = progress?.completedLessons?.length || 0;
+      const learnedWords = (progress?.vocabularyStatus || []).filter(
+        (v) => v.status === 'completed',
+      ).length;
+      const learningWords = (progress?.vocabularyStatus || []).filter(
+        (v) => v.status === 'learning',
+      ).length;
+      const completedGrammar = (progress?.grammarStatus || []).filter(
+        (g) => g.progress >= 100,
+      ).length;
+      const totalGrammar = progress?.grammarStatus?.length || 0;
+      const completedConversations = (progress?.conversationStatus || []).filter(
+        (c) => c.completed,
+      ).length;
+      const totalConversations = progress?.conversationStatus?.length || 0;
 
-      // 최근 코인 거래
-      const coinFilter: Record<string, any> = { userId };
-      if (periodStart) coinFilter.createdAt = { $gte: periodStart };
+      // 카테고리별 학습 비율
+      const totalItems = (progress?.vocabularyStatus?.length || 0)
+        + (progress?.grammarStatus?.length || 0)
+        + (progress?.conversationStatus?.length || 0);
 
-      const [coinsEarned, coinsSpent] = await Promise.all([
-        CoinTransaction.aggregate([
-          { $match: { ...coinFilter, type: 'earn' } },
-          { $group: { _id: null, total: { $sum: '$amount' } } },
-        ]),
-        CoinTransaction.aggregate([
-          { $match: { ...coinFilter, type: 'spend' } },
-          { $group: { _id: null, total: { $sum: '$amount' } } },
-        ]),
-      ]);
-
-      // 학습 진행률
-      const totalLessons = lessons || 1;
-      const overallProgress = Math.round((lessonsCompleted / totalLessons) * 100);
+      const categoryRatio = {
+        vocabulary: totalItems > 0
+          ? Math.round(((progress?.vocabularyStatus?.length || 0) / totalItems) * 100)
+          : 0,
+        grammar: totalItems > 0
+          ? Math.round(((progress?.grammarStatus?.length || 0) / totalItems) * 100)
+          : 0,
+        conversation: totalItems > 0
+          ? Math.round(((progress?.conversationStatus?.length || 0) / totalItems) * 100)
+          : 0,
+      };
 
       return ApiResponse.success(res, {
-        period,
-        level: profile.level,
-        userLevel: profile.userLevel,
-        xp: profile.xp,
-        streak: {
-          current: streak?.currentStreak || 0,
-          longest: streak?.longestStreak || 0,
+        profile: {
+          level: profile.level,
+          userLevel: profile.userLevel,
+          xp: profile.xp,
+          vocabularyProgress: profile.vocabularyProgress,
+          grammarProgress: profile.grammarProgress,
+          conversationProgress: profile.conversationProgress,
+          listeningProgress: profile.listeningProgress,
+          readingProgress: profile.readingProgress,
+        },
+        streak: streak ? {
+          currentStreak: streak.currentStreak,
+          longestStreak: streak.longestStreak,
+          lastStudyDate: streak.lastStudyDate,
+          weeklyRecord: streak.weeklyRecord,
+        } : {
+          currentStreak: 0,
+          longestStreak: 0,
+          lastStudyDate: null,
+          weeklyRecord: [],
         },
         learning: {
-          vocabulary: { studied: vocabularyStudied, mastered: vocabularyMastered },
-          grammar: { studied: grammarStudied, mastered: grammarMastered },
-          conversation: { practiced: conversationPracticed },
-          lessons: { completed: lessonsCompleted, total: totalLessons },
-          overallProgress,
+          completedLessons,
+          learnedWords,
+          learningWords,
+          completedGrammar,
+          totalGrammar,
+          completedConversations,
+          totalConversations,
+          wrongAnswers: progress?.wrongAnswers?.length || 0,
         },
-        review: {
-          wrongAnswers: wrongAnswersTotal,
-          reviewed: wrongAnswersReviewed,
-          pending: wrongAnswersTotal - wrongAnswersReviewed,
-        },
-        badges: badgeCount,
-        coins: {
-          earned: coinsEarned[0]?.total || 0,
-          spent: coinsSpent[0]?.total || 0,
-        },
-        categoryProgress: {
-          vocabulary: profile.vocabularyProgress || 0,
-          grammar: profile.grammarProgress || 0,
-          conversation: profile.conversationProgress || 0,
-          listening: profile.listeningProgress || 0,
-          reading: profile.readingProgress || 0,
-          quiz: profile.quizProgress || 0,
-        },
-      });
-    } catch (err) { next(err); }
+        categoryRatio,
+        period,
+      }, '학습 통계 조회 성공');
+    } catch (err) {
+      next(err);
+    }
   };
 }

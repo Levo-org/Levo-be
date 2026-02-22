@@ -5,160 +5,188 @@ import { ApiError } from '@/utils/ApiError';
 import Vocabulary from '@/models/Vocabulary';
 import UserProgress from '@/models/UserProgress';
 import UserLanguageProfile from '@/models/UserLanguageProfile';
-import { XP_CONFIG, COIN_CONFIG } from '@/utils/constants';
+import { REVIEW_INTERVALS_DAYS, XP_CONFIG } from '@/utils/constants';
 
 export class VocabularyController {
-  /** 단어 목록 조회 (레벨/챕터 필터) */
+  /** 단어 목록 조회 */
   getList = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!._id;
-      const targetLanguage = req.user!.activeLanguage;
-      const { level, chapter, page = '1', limit = '20' } = req.query;
+      const userId = req.user._id;
+      const { targetLanguage, level } = req.query;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const skip = (page - 1) * limit;
 
       const filter: Record<string, any> = { targetLanguage };
       if (level) filter.level = level;
-      if (chapter) filter.chapter = Number(chapter);
 
-      const pageNum = Number(page);
-      const limitNum = Number(limit);
-
-      const [items, total] = await Promise.all([
-        Vocabulary.find(filter)
-          .sort({ chapter: 1, order: 1 })
-          .skip((pageNum - 1) * limitNum)
-          .limit(limitNum),
+      const [vocabularies, total] = await Promise.all([
+        Vocabulary.find(filter).sort({ order: 1 }).skip(skip).limit(limit),
         Vocabulary.countDocuments(filter),
       ]);
 
-      // 학습 상태 매핑
-      const progress = await UserProgress.findOne({ userId, targetLanguage });
-      const statusMap = new Map(
-        (progress?.vocabularyStatus || []).map((v: any) => [v.contentId.toString(), v])
-      );
+      const userProgress = await UserProgress.findOne({
+        userId,
+        targetLanguage,
+      });
 
-      const data = items.map(item => {
-        const s = statusMap.get(item._id.toString());
+      const vocabWithStatus = vocabularies.map((vocab) => {
+        const status = userProgress?.vocabularyStatus.find(
+          (v) => v.wordId.toString() === vocab._id.toString(),
+        );
         return {
-          ...item.toJSON(),
-          studied: !!s,
-          mastered: s?.mastered || false,
-          correctCount: s?.correctCount || 0,
-          wrongCount: s?.wrongCount || 0,
+          ...vocab.toObject(),
+          userStatus: status || { status: 'new', correctCount: 0, wrongCount: 0 },
         };
       });
 
-      return ApiResponse.paginated(res, data, total, pageNum, limitNum);
-    } catch (err) { next(err); }
+      return ApiResponse.paginated(res, vocabWithStatus, {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      });
+    } catch (err) {
+      next(err);
+    }
   };
 
-  /** 플래시카드 목록 (셔플 + 미학습 우선) */
+  /** 플래시카드 세트 조회 */
   getFlashcards = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!._id;
-      const targetLanguage = req.user!.activeLanguage;
-      const { level, chapter, count = '20' } = req.query;
+      const userId = req.user._id;
+      const { targetLanguage, level } = req.query;
+      const limit = parseInt(req.query.limit as string) || 20;
 
       const filter: Record<string, any> = { targetLanguage };
       if (level) filter.level = level;
-      if (chapter) filter.chapter = Number(chapter);
 
-      const progress = await UserProgress.findOne({ userId, targetLanguage });
-      const studiedIds = new Set(
-        (progress?.vocabularyStatus || []).filter((v: any) => v.mastered).map((v: any) => v.contentId.toString())
-      );
-
-      // 미학습 우선, 나머지 랜덤
-      const all = await Vocabulary.find(filter);
-      const unstudied = all.filter(v => !studiedIds.has(v._id.toString()));
-      const studied = all.filter(v => studiedIds.has(v._id.toString()));
+      const vocabularies = await Vocabulary.find(filter).limit(limit);
 
       // 셔플
-      const shuffle = <T>(arr: T[]) => arr.sort(() => Math.random() - 0.5);
-      const cards = [...shuffle(unstudied), ...shuffle(studied)].slice(0, Number(count));
+      const shuffled = vocabularies.sort(() => Math.random() - 0.5);
 
-      return ApiResponse.success(res, { cards, total: cards.length });
-    } catch (err) { next(err); }
+      const userProgress = await UserProgress.findOne({
+        userId,
+        targetLanguage,
+      });
+
+      const flashcards = shuffled.map((vocab) => {
+        const status = userProgress?.vocabularyStatus.find(
+          (v) => v.wordId.toString() === vocab._id.toString(),
+        );
+        return {
+          ...vocab.toObject(),
+          isStudied: !!status && status.status !== 'new',
+        };
+      });
+
+      return ApiResponse.success(res, { flashcards }, '플래시카드 조회 성공');
+    } catch (err) {
+      next(err);
+    }
   };
 
   /** 단어 상세 조회 */
   getDetail = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const item = await Vocabulary.findById(req.params.id);
-      if (!item) throw ApiError.notFound('단어를 찾을 수 없습니다.');
+      const vocabulary = await Vocabulary.findById(req.params.id);
+      if (!vocabulary) throw ApiError.notFound('단어를 찾을 수 없습니다.');
 
-      return ApiResponse.success(res, item);
-    } catch (err) { next(err); }
+      return ApiResponse.success(res, { vocabulary }, '단어 상세 조회 성공');
+    } catch (err) {
+      next(err);
+    }
   };
 
-  /** 단어 정답 제출 */
+  /** 단어 학습 결과 제출 */
   submitAnswer = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!._id;
-      const targetLanguage = req.user!.activeLanguage;
-      const vocabId = req.params.id;
-      const { answer, isCorrect } = req.body;
+      const userId = req.user._id;
+      const { wordId, correct } = req.body;
+      const { targetLanguage } = req.query;
 
-      const vocab = await Vocabulary.findById(vocabId);
-      if (!vocab) throw ApiError.notFound('단어를 찾을 수 없습니다.');
+      const vocabulary = await Vocabulary.findById(wordId);
+      if (!vocabulary) throw ApiError.notFound('단어를 찾을 수 없습니다.');
 
-      // 진행도 업데이트
-      const progress = await UserProgress.findOne({ userId, targetLanguage });
-      if (!progress) throw ApiError.notFound('학습 진행도를 찾을 수 없습니다.');
+      let userProgress = await UserProgress.findOne({ userId, targetLanguage });
+      if (!userProgress) {
+        userProgress = await UserProgress.create({ userId, targetLanguage });
+      }
 
-      const existing = progress.vocabularyStatus.find(
-        (v: any) => v.contentId.toString() === vocabId
+      const statusIndex = userProgress.vocabularyStatus.findIndex(
+        (v) => v.wordId.toString() === wordId,
       );
 
-      if (existing) {
-        if (isCorrect) {
-          existing.correctCount += 1;
-          if (existing.correctCount >= 3) existing.mastered = true;
+      if (statusIndex >= 0) {
+        const entry = userProgress.vocabularyStatus[statusIndex];
+        if (correct) {
+          entry.correctCount += 1;
+          const intervalIndex = Math.min(entry.correctCount - 1, REVIEW_INTERVALS_DAYS.length - 1);
+          const nextReviewDate = new Date();
+          nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[intervalIndex]);
+          entry.nextReviewAt = nextReviewDate;
+          entry.status = entry.correctCount >= 3 ? 'completed' : 'learning';
         } else {
-          existing.wrongCount += 1;
-          // 오답노트 추가
-          await this.addWrongAnswer(progress, vocabId, 'vocabulary', vocab.word, answer, vocab.meaning);
+          entry.wrongCount += 1;
+          entry.status = 'wrong';
+          entry.nextReviewAt = new Date();
+          // 오답 기록 추가
+          userProgress.wrongAnswers.push({
+            type: 'vocabulary',
+            contentId: vocabulary._id,
+            question: vocabulary.word,
+            userAnswer: '',
+            correctAnswer: vocabulary.meaning,
+            createdAt: new Date(),
+          });
         }
-        existing.lastStudiedAt = new Date();
+        entry.lastReviewedAt = new Date();
       } else {
-        progress.vocabularyStatus.push({
-          contentId: vocabId as any,
-          mastered: isCorrect && false, // 첫 정답은 아직 마스터 아님
-          correctCount: isCorrect ? 1 : 0,
-          wrongCount: isCorrect ? 0 : 1,
-          lastStudiedAt: new Date(),
+        const nextReviewDate = new Date();
+        if (correct) {
+          nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[0]);
+        }
+        userProgress.vocabularyStatus.push({
+          wordId,
+          status: correct ? 'learning' : 'wrong',
+          correctCount: correct ? 1 : 0,
+          wrongCount: correct ? 0 : 1,
+          lastReviewedAt: new Date(),
+          nextReviewAt: nextReviewDate,
         });
-        if (!isCorrect) {
-          await this.addWrongAnswer(progress, vocabId, 'vocabulary', vocab.word, answer, vocab.meaning);
+        if (!correct) {
+          userProgress.wrongAnswers.push({
+            type: 'vocabulary',
+            contentId: vocabulary._id,
+            question: vocabulary.word,
+            userAnswer: '',
+            correctAnswer: vocabulary.meaning,
+            createdAt: new Date(),
+          });
         }
       }
 
-      await progress.save();
+      await userProgress.save();
 
-      // XP 부여
-      let xpEarned = 0;
-      if (isCorrect) {
-        xpEarned = XP_CONFIG.VOCABULARY_CORRECT;
+      // XP 지급
+      if (correct) {
         await UserLanguageProfile.findOneAndUpdate(
           { userId, targetLanguage },
-          { $inc: { xp: xpEarned } }
+          { $inc: { xp: XP_CONFIG.QUIZ_CORRECT } },
         );
       }
 
-      return ApiResponse.success(res, { isCorrect, xpEarned, correctAnswer: vocab.meaning });
-    } catch (err) { next(err); }
-  };
-
-  private addWrongAnswer = async (
-    progress: any, contentId: string, category: string,
-    question: string, userAnswer: string, correctAnswer: string
-  ) => {
-    progress.wrongAnswers.push({
-      category,
-      contentId,
-      question,
-      userAnswer,
-      correctAnswer,
-      reviewedAt: null,
-    });
+      return ApiResponse.success(res, {
+        correct,
+        vocabularyStatus: userProgress.vocabularyStatus.find(
+          (v) => v.wordId.toString() === wordId,
+        ),
+      }, '답변 제출 완료');
+    } catch (err) {
+      next(err);
+    }
   };
 }
+
+export default new VocabularyController();
