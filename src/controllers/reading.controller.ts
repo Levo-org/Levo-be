@@ -11,7 +11,8 @@ export class ReadingController {
   /** 읽기 지문 목록 조회 */
   getList = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { targetLanguage, difficulty } = req.query;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
+      const difficulty = req.query.difficulty as string | undefined;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const skip = (page - 1) * limit;
@@ -58,7 +59,7 @@ export class ReadingController {
     try {
       const userId = req.user._id;
       const { readingId, quizIndex, answer } = req.body;
-      const { targetLanguage } = req.query;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
 
       const reading = await Reading.findById(readingId);
       if (!reading) throw ApiError.notFound('읽기 지문을 찾을 수 없습니다.');

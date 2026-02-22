@@ -12,7 +12,8 @@ export class VocabularyController {
   getList = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user._id;
-      const { targetLanguage, level } = req.query;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
+      const level = req.query.level as string | undefined;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const skip = (page - 1) * limit;
@@ -55,7 +56,8 @@ export class VocabularyController {
   getFlashcards = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user._id;
-      const { targetLanguage, level } = req.query;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
+      const level = req.query.level as string | undefined;
       const limit = parseInt(req.query.limit as string) || 20;
 
       const filter: Record<string, any> = { targetLanguage };

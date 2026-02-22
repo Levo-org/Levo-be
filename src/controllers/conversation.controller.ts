@@ -11,7 +11,8 @@ export class ConversationController {
   /** 회화 목록 조회 */
   getList = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { targetLanguage, level } = req.query;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
+      const level = req.query.level as string | undefined;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const skip = (page - 1) * limit;
@@ -58,7 +59,7 @@ export class ConversationController {
     try {
       const userId = req.user._id;
       const { conversationId, pronunciationScore } = req.body;
-      const { targetLanguage } = req.query;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
 
       const conversation = await Conversation.findById(conversationId);
       if (!conversation) throw ApiError.notFound('회화를 찾을 수 없습니다.');

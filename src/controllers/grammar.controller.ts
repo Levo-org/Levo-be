@@ -11,7 +11,8 @@ export class GrammarController {
   /** 문법 목록 조회 */
   getList = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { targetLanguage, level } = req.query;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
+      const level = req.query.level as string | undefined;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const skip = (page - 1) * limit;
@@ -76,7 +77,7 @@ export class GrammarController {
     try {
       const userId = req.user._id;
       const { grammarId, correct } = req.body;
-      const { targetLanguage } = req.query;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
 
       const grammar = await Grammar.findById(grammarId);
       if (!grammar) throw ApiError.notFound('문법을 찾을 수 없습니다.');
