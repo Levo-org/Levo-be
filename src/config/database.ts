@@ -15,6 +15,6 @@ export const connectDatabase = async (): Promise<void> => {
     });
   } catch (error) {
     console.error('❌ MongoDB 초기 연결 실패:', error);
-    process.exit(1);
+    throw error;
   }
 };
