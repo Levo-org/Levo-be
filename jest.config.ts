@@ -10,6 +10,8 @@ const config: Config = {
   },
   globalSetup: undefined,
   globalTeardown: undefined,
+  forceExit: true,
+  detectOpenHandles: true,
   testTimeout: 30000,
   verbose: true,
 };
