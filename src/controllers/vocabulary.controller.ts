@@ -19,7 +19,7 @@ export class VocabularyController {
       const limit = parseInt(req.query.limit as string) || 20;
       const skip = (page - 1) * limit;
 
-      const filter: Record<string, any> = { targetLanguage };
+      const filter: Record<string, any> = { targetLanguage, status: 'published' };
       if (level) filter.level = level;
 
       const [vocabularies, total] = await Promise.all([
@@ -61,7 +61,7 @@ export class VocabularyController {
       const level = req.query.level as string | undefined;
       const limit = parseInt(req.query.limit as string) || 20;
 
-      const filter: Record<string, any> = { targetLanguage };
+      const filter: Record<string, any> = { targetLanguage, status: 'published' };
       if (level) filter.level = level;
 
       const vocabularies = await Vocabulary.find(filter).limit(limit);
@@ -93,7 +93,7 @@ export class VocabularyController {
   /** 단어 상세 조회 */
   getDetail = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const vocabulary = await Vocabulary.findById(req.params.id);
+      const vocabulary = await Vocabulary.findOne({ _id: req.params.id, status: 'published' });
       if (!vocabulary) throw ApiError.notFound('단어를 찾을 수 없습니다.');
 
       return ApiResponse.success(res, { vocabulary }, '단어 상세 조회 성공');
@@ -109,7 +109,7 @@ export class VocabularyController {
       const { wordId, correct } = req.body;
       const { targetLanguage } = req.query;
 
-      const vocabulary = await Vocabulary.findById(wordId);
+      const vocabulary = await Vocabulary.findOne({ _id: wordId, status: 'published' });
       if (!vocabulary) throw ApiError.notFound('단어를 찾을 수 없습니다.');
 
       let userProgress = await UserProgress.findOne({ userId, targetLanguage });

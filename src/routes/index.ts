@@ -16,6 +16,7 @@ import coinRoutes from './coin.routes';
 import statsRoutes from './stats.routes';
 import subscriptionRoutes from './subscription.routes';
 import homeRoutes from './home.routes';
+import adminRoutes from './admin';
 
 const router = Router();
 
@@ -36,5 +37,6 @@ router.use('/coins', coinRoutes);
 router.use('/stats', statsRoutes);
 router.use('/subscription', subscriptionRoutes);
 router.use('/home', homeRoutes);
+router.use('/admin', adminRoutes);
 
 export default router;

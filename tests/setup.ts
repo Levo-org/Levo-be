@@ -181,6 +181,7 @@ export async function createVocabulary(overrides: Record<string, any> = {}) {
     exampleTranslation: '나는 사과를 먹는다.',
     audioUrl: '',
     order: 1,
+    status: 'published',
     ...overrides,
   });
 }
@@ -215,6 +216,7 @@ export async function createGrammar(overrides: Record<string, any> = {}) {
         explanation: 'Third person singular uses -es.',
       },
     ],
+    status: 'published',
     ...overrides,
   });
 }
@@ -231,6 +233,7 @@ export async function createListening(overrides: Record<string, any> = {}) {
     difficulty: 'beginner',
     audioUrl: '',
     order: 1,
+    status: 'published',
     ...overrides,
   });
 }
@@ -254,6 +257,7 @@ export async function createReading(overrides: Record<string, any> = {}) {
       },
     ],
     order: 1,
+    status: 'published',
     ...overrides,
   });
 }
@@ -280,6 +284,7 @@ export async function createConversation(overrides: Record<string, any> = {}) {
         meaning: '안녕하세요',
       },
     ],
+    status: 'published',
     ...overrides,
   });
 }

@@ -18,7 +18,7 @@ export class ReadingController {
       const limit = parseInt(req.query.limit as string) || 20;
       const skip = (page - 1) * limit;
 
-      const filter: Record<string, any> = { targetLanguage };
+      const filter: Record<string, any> = { targetLanguage, status: 'published' };
       if (difficulty) filter.difficulty = difficulty;
 
       const [readings, total] = await Promise.all([
@@ -40,7 +40,7 @@ export class ReadingController {
   /** 읽기 상세 조회 */
   getDetail = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const reading = await Reading.findById(req.params.id);
+      const reading = await Reading.findOne({ _id: req.params.id, status: 'published' });
       if (!reading) throw ApiError.notFound('읽기 지문을 찾을 수 없습니다.');
 
       return ApiResponse.success(res, {

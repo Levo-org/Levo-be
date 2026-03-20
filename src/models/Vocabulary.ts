@@ -1,7 +1,8 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema, Types } from 'mongoose';
 import { SUPPORTED_LANGUAGES, LEVELS } from '@/utils/constants';
+import { editorialMetadataSchema, IEditorialMetadata } from '@/types/editorial';
 
-export interface IVocabulary extends Document {
+export interface IVocabulary extends Document, IEditorialMetadata {
   targetLanguage: string;
   word: string;
   pronunciation: string;
@@ -11,6 +12,7 @@ export interface IVocabulary extends Document {
   chapter: number;
   exampleSentence: string;
   exampleTranslation: string;
+  exampleSentenceIds?: Types.ObjectId[];
   audioUrl: string;
   order: number;
   createdAt: Date;
@@ -27,8 +29,10 @@ const vocabularySchema = new Schema<IVocabulary>(
     chapter: { type: Number, required: true },
     exampleSentence: { type: String, default: '' },
     exampleTranslation: { type: String, default: '' },
+    exampleSentenceIds: [{ type: Schema.Types.ObjectId, ref: 'ExampleSentence' }],
     audioUrl: { type: String, default: '' },
     order: { type: Number, default: 0 },
+    ...editorialMetadataSchema,
   },
   { timestamps: true }
 );

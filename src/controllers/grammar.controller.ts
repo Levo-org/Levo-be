@@ -18,7 +18,7 @@ export class GrammarController {
       const limit = parseInt(req.query.limit as string) || 20;
       const skip = (page - 1) * limit;
 
-      const filter: Record<string, any> = { targetLanguage };
+      const filter: Record<string, any> = { targetLanguage, status: 'published' };
       if (level) filter.level = level;
 
       const [grammars, total] = await Promise.all([
@@ -40,7 +40,7 @@ export class GrammarController {
   /** 문법 상세 조회 */
   getDetail = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const grammar = await Grammar.findById(req.params.id);
+      const grammar = await Grammar.findOne({ _id: req.params.id, status: 'published' });
       if (!grammar) throw ApiError.notFound('문법을 찾을 수 없습니다.');
 
       return ApiResponse.success(res, { grammar }, '문법 상세 조회 성공');

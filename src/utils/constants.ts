@@ -58,3 +58,48 @@ export type WordStatus = typeof WORD_STATUS[number];
 // 레슨 상태
 export const LESSON_STATUS = ['locked', 'current', 'completed'] as const;
 export type LessonStatus = typeof LESSON_STATUS[number];
+
+export const CONTENT_STATUSES = ['draft', 'in_review', 'approved', 'published', 'archived'] as const;
+export type ContentStatus = typeof CONTENT_STATUSES[number];
+
+export const AUDIT_ACTIONS = [
+  'create',
+  'update',
+  'submit_review',
+  'approve',
+  'reject',
+  'publish',
+  'archive',
+  'import',
+] as const;
+export type AuditAction = typeof AUDIT_ACTIONS[number];
+
+export const IMPORT_STATUSES = [
+  'pending',
+  'validating',
+  'staged',
+  'approved',
+  'importing',
+  'completed',
+  'failed',
+  'cancelled',
+] as const;
+export type ImportStatus = typeof IMPORT_STATUSES[number];
+
+export const VALID_STATUS_TRANSITIONS: Record<ContentStatus, ContentStatus[]> = {
+  draft: ['in_review', 'archived'],
+  in_review: ['approved', 'draft'],
+  approved: ['published', 'draft'],
+  published: ['archived'],
+  archived: ['draft'],
+};
+
+export const USER_ROLES = ['learner', 'editor', 'reviewer', 'admin'] as const;
+export type UserRole = typeof USER_ROLES[number];
+
+export const ROLE_HIERARCHY: Record<UserRole, number> = {
+  learner: 0,
+  editor: 1,
+  reviewer: 2,
+  admin: 3,
+};

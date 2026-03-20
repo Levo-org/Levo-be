@@ -1,10 +1,11 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import { SUPPORTED_LANGUAGES } from '@/utils/constants';
+import { SUPPORTED_LANGUAGES, USER_ROLES, UserRole } from '@/utils/constants';
 
 export interface IUser extends Document {
   email: string;
   name: string;
   profileImage: string;
+  role: UserRole;
   provider: 'google' | 'apple' | 'email';
   providerId: string;
   activeLanguage: string;
@@ -28,6 +29,7 @@ const userSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     name: { type: String, required: true, trim: true },
     profileImage: { type: String, default: '' },
+    role: { type: String, enum: USER_ROLES, default: 'learner' },
     provider: { type: String, enum: ['google', 'apple', 'email'], required: true },
     providerId: { type: String, required: true },
     activeLanguage: { type: String, enum: SUPPORTED_LANGUAGES, default: 'en' },

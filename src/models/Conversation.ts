@@ -1,7 +1,8 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { SUPPORTED_LANGUAGES, LEVELS } from '@/utils/constants';
+import { editorialMetadataSchema, IEditorialMetadata } from '@/types/editorial';
 
-export interface IConversation extends Document {
+export interface IConversation extends Document, IEditorialMetadata {
   targetLanguage: string;
   title: string;
   emoji: string;
@@ -43,6 +44,7 @@ const conversationSchema = new Schema<IConversation>(
         meaning: { type: String },
       },
     ],
+    ...editorialMetadataSchema,
   },
   { timestamps: true }
 );

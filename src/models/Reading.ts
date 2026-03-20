@@ -1,7 +1,8 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { SUPPORTED_LANGUAGES, LEVELS } from '@/utils/constants';
+import { editorialMetadataSchema, IEditorialMetadata } from '@/types/editorial';
 
-export interface IReading extends Document {
+export interface IReading extends Document, IEditorialMetadata {
   targetLanguage: string;
   title: string;
   difficulty: string;
@@ -33,6 +34,7 @@ const readingSchema = new Schema<IReading>(
       },
     ],
     order: { type: Number, default: 0 },
+    ...editorialMetadataSchema,
   },
   { timestamps: true }
 );

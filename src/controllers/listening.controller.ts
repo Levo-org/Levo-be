@@ -18,7 +18,7 @@ export class ListeningController {
       const limit = parseInt(req.query.limit as string) || 20;
       const skip = (page - 1) * limit;
 
-      const filter: Record<string, any> = { targetLanguage };
+      const filter: Record<string, any> = { targetLanguage, status: 'published' };
       if (difficulty) filter.difficulty = difficulty;
 
       const [listenings, total] = await Promise.all([
@@ -44,7 +44,7 @@ export class ListeningController {
       const { listeningId, answer } = req.body;
       const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
 
-      const listening = await Listening.findById(listeningId);
+      const listening = await Listening.findOne({ _id: listeningId, status: 'published' });
       if (!listening) throw ApiError.notFound('듣기 문제를 찾을 수 없습니다.');
 
       const correct = answer.trim().toLowerCase() === listening.correctAnswer.trim().toLowerCase();

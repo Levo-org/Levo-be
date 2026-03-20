@@ -18,7 +18,7 @@ export class ConversationController {
       const limit = parseInt(req.query.limit as string) || 20;
       const skip = (page - 1) * limit;
 
-      const filter: Record<string, any> = { targetLanguage };
+      const filter: Record<string, any> = { targetLanguage, status: 'published' };
       if (level) filter.level = level;
 
       const [conversations, total] = await Promise.all([
@@ -40,7 +40,7 @@ export class ConversationController {
   /** 회화 상세 조회 */
   getDetail = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const conversation = await Conversation.findById(req.params.id);
+      const conversation = await Conversation.findOne({ _id: req.params.id, status: 'published' });
       if (!conversation) throw ApiError.notFound('회화를 찾을 수 없습니다.');
 
       return ApiResponse.success(res, {

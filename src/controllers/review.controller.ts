@@ -73,7 +73,7 @@ export class ReviewController {
         ).slice(0, limit);
 
         const wordIds = dueItems.map((v) => v.wordId);
-        const words = await Vocabulary.find({ _id: { $in: wordIds } }).lean();
+        const words = await Vocabulary.find({ _id: { $in: wordIds }, status: 'published' }).lean();
 
         items = dueItems.map((v) => {
           const word = words.find((w) => w._id.toString() === v.wordId.toString());
@@ -85,7 +85,7 @@ export class ReviewController {
         ).slice(0, limit);
 
         const grammarIds = dueItems.map((g) => g.grammarId);
-        const grammars = await Grammar.find({ _id: { $in: grammarIds } }).lean();
+        const grammars = await Grammar.find({ _id: { $in: grammarIds }, status: 'published' }).lean();
 
         items = dueItems.map((g) => {
           const grammar = grammars.find((gr) => gr._id.toString() === g.grammarId.toString());

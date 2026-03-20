@@ -1,7 +1,8 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { SUPPORTED_LANGUAGES, LEVELS } from '@/utils/constants';
+import { editorialMetadataSchema, IEditorialMetadata } from '@/types/editorial';
 
-export interface IGrammar extends Document {
+export interface IGrammar extends Document, IEditorialMetadata {
   targetLanguage: string;
   title: string;
   subtitle: string;
@@ -53,6 +54,7 @@ const grammarSchema = new Schema<IGrammar>(
         explanation: { type: String },
       },
     ],
+    ...editorialMetadataSchema,
   },
   { timestamps: true }
 );

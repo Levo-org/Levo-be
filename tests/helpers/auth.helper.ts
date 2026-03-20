@@ -20,8 +20,9 @@ export function generateTestToken(options: TokenOptions = {}): string {
 
   return jwt.sign(
     { userId, email },
-    config.jwt.secret,
-    { expiresIn },
+    // cast to Secret to satisfy type definitions in this test helper
+    config.jwt.secret as unknown as jwt.Secret,
+    { expiresIn } as jwt.SignOptions,
   );
 }
 
@@ -29,15 +30,15 @@ export function generateExpiredToken(userId?: string): string {
   const id = userId ?? new mongoose.Types.ObjectId().toString();
   return jwt.sign(
     { userId: id, email: 'expired@test.com' },
-    config.jwt.secret,
-    { expiresIn: '0s' },
+    config.jwt.secret as unknown as jwt.Secret,
+    { expiresIn: '0s' } as jwt.SignOptions,
   );
 }
 
 export function generateInvalidToken(): string {
   return jwt.sign(
     { userId: new mongoose.Types.ObjectId().toString(), email: 'invalid@test.com' },
-    'wrong-secret-key',
-    { expiresIn: '1h' },
+    'wrong-secret-key' as unknown as jwt.Secret,
+    { expiresIn: '1h' } as jwt.SignOptions,
   );
 }

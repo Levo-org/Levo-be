@@ -1,7 +1,8 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { SUPPORTED_LANGUAGES, LEVELS } from '@/utils/constants';
+import { editorialMetadataSchema, IEditorialMetadata } from '@/types/editorial';
 
-export interface IListening extends Document {
+export interface IListening extends Document, IEditorialMetadata {
   targetLanguage: string;
   audioText: string;
   correctAnswer: string;
@@ -21,6 +22,7 @@ const listeningSchema = new Schema<IListening>(
     difficulty: { type: String, enum: LEVELS, required: true },
     audioUrl: { type: String, default: '' },
     order: { type: Number, default: 0 },
+    ...editorialMetadataSchema,
   },
   { timestamps: true }
 );
