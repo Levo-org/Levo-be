@@ -15,7 +15,8 @@
     "test:watch": "jest --watch --forceExit --detectOpenHandles",
     "test:coverage": "jest --coverage --forceExit --detectOpenHandles",
     "migrate:progress": "ts-node -r tsconfig-paths/register src/scripts/migrate-to-item-progress.ts",
-    "migrate:seed": "ts-node -r tsconfig-paths/register src/scripts/migrateSeedToDb.ts"
+    "migrate:seed": "ts-node -r tsconfig-paths/register src/scripts/migrateSeedToDb.ts",
+    "create-admin": "ts-node -r tsconfig-paths/register src/scripts/createAdminUser.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

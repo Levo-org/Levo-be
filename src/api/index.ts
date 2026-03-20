@@ -15,7 +15,8 @@ const handler = async (req: any, res: any) => {
     }
   }
   
-  return app(req, res);
+  // Express app is itself a request handler
+  app(req, res);
 };
 
 export default handler;
