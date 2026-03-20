@@ -7,6 +7,10 @@ import UserProgress from '@/models/UserProgress';
 import Lesson from '@/models/Lesson';
 import { ApiResponse } from '@/utils/ApiResponse';
 import { ApiError } from '@/utils/ApiError';
+import {
+  calculateProfileProgress,
+  calculateTodaySummary,
+} from '@/services/learningSummary.service';
 
 /** KST 기준 오늘 날짜 (YYYY-MM-DD) */
 const getKSTDate = () => {
@@ -52,6 +56,9 @@ export class HomeController {
       const today = getKSTDate();
       const todayStudied = streak?.lastStudyDate === today;
 
+      const profileProgress = calculateProfileProgress(progress || null);
+      const todaySummary = calculateTodaySummary(progress || null, todayStudied);
+
       return ApiResponse.success(res, {
         user: {
           name: user.name,
@@ -64,11 +71,11 @@ export class HomeController {
           userLevel: profile.userLevel,
           xp: profile.xp,
           hearts: profile.hearts,
-          vocabularyProgress: profile.vocabularyProgress,
-          grammarProgress: profile.grammarProgress,
-          conversationProgress: profile.conversationProgress,
-          listeningProgress: profile.listeningProgress,
-          readingProgress: profile.readingProgress,
+          vocabularyProgress: profileProgress.vocabularyProgress,
+          grammarProgress: profileProgress.grammarProgress,
+          conversationProgress: profileProgress.conversationProgress,
+          listeningProgress: profileProgress.listeningProgress,
+          readingProgress: profileProgress.readingProgress,
         } : null,
         streak: streak ? {
           currentStreak: streak.currentStreak,
@@ -88,13 +95,7 @@ export class HomeController {
           estimatedMinutes: nextLesson.estimatedMinutes,
           xpReward: nextLesson.xpReward,
         } : null,
-        todaySummary: {
-          studied: todayStudied,
-          completedLessons: progress?.completedLessons?.length || 0,
-          learnedWords: (progress?.vocabularyStatus || []).filter(
-            (v) => v.status === 'completed',
-          ).length,
-        },
+        todaySummary,
       }, '홈 화면 조회 성공');
     } catch (err) {
       next(err);

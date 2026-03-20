@@ -5,7 +5,8 @@ import { ApiError } from '@/utils/ApiError';
 import Conversation from '@/models/Conversation';
 import UserProgress from '@/models/UserProgress';
 import UserLanguageProfile from '@/models/UserLanguageProfile';
-import { XP_CONFIG } from '@/utils/constants';
+import { REVIEW_INTERVALS_DAYS, XP_CONFIG } from '@/utils/constants';
+import { recordWrongAnswer } from '@/services/remediation.service';
 
 export class ConversationController {
   /** 회화 목록 조회 */
@@ -58,7 +59,7 @@ export class ConversationController {
   submitPractice = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user._id;
-      const { conversationId, pronunciationScore } = req.body;
+      const { conversationId, pronunciationScore, correct } = req.body;
       const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
 
       const conversation = await Conversation.findById(conversationId);
@@ -73,27 +74,89 @@ export class ConversationController {
         (c) => c.conversationId.toString() === conversationId,
       );
 
+      const wasCorrect = correct !== false;
+
       if (statusIndex >= 0) {
         const entry = userProgress.conversationStatus[statusIndex];
         entry.completed = true;
         entry.pronunciationScore = Math.max(entry.pronunciationScore, pronunciationScore);
+        if (wasCorrect) {
+          entry.correctCount = (entry.correctCount || 0) + 1;
+          const intervalIndex = Math.min(entry.correctCount - 1, REVIEW_INTERVALS_DAYS.length - 1);
+          const nextReviewDate = new Date();
+          nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[intervalIndex]);
+          entry.nextReviewAt = nextReviewDate;
+          entry.masteryState = entry.correctCount >= 3 ? 'completed' : 'learning';
+        } else {
+          entry.wrongCount = (entry.wrongCount || 0) + 1;
+          entry.masteryState = 'wrong';
+          const nextReviewDate = new Date();
+          nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[0]);
+          entry.nextReviewAt = nextReviewDate;
+          // TODO: legacy embedded wrongAnswers — remove after migration to WrongAnswerEntry collection
+          userProgress.wrongAnswers.push({
+            type: 'conversation',
+            contentId: conversation._id,
+            question: conversation.title,
+            userAnswer: '',
+            correctAnswer: '',
+            createdAt: new Date(),
+          });
+          await recordWrongAnswer({
+            userId,
+            targetLanguage,
+            contentType: 'conversation',
+            contentId: conversation._id,
+            question: conversation.title,
+            correctAnswer: '',
+            userAnswer: '',
+          });
+        }
         entry.lastReviewedAt = new Date();
       } else {
+        const nextReviewDate = new Date();
+        nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[0]);
         userProgress.conversationStatus.push({
           conversationId,
           completed: true,
           pronunciationScore,
           lastReviewedAt: new Date(),
+          masteryState: wasCorrect ? 'learning' : 'wrong',
+          correctCount: wasCorrect ? 1 : 0,
+          wrongCount: wasCorrect ? 0 : 1,
+          nextReviewAt: nextReviewDate,
         });
+        if (!wasCorrect) {
+          // TODO: legacy embedded wrongAnswers — remove after migration to WrongAnswerEntry collection
+           userProgress.wrongAnswers.push({
+            type: 'conversation',
+            contentId: conversation._id,
+            question: conversation.title,
+            userAnswer: '',
+            correctAnswer: '',
+            createdAt: new Date(),
+          });
+          await recordWrongAnswer({
+            userId,
+            targetLanguage,
+            contentType: 'conversation',
+            contentId: conversation._id,
+            question: conversation.title,
+            correctAnswer: '',
+            userAnswer: '',
+          });
+        }
       }
 
       await userProgress.save();
 
       // XP 지급
-      await UserLanguageProfile.findOneAndUpdate(
-        { userId, targetLanguage },
-        { $inc: { xp: XP_CONFIG.QUIZ_CORRECT } },
-      );
+      if (wasCorrect) {
+        await UserLanguageProfile.findOneAndUpdate(
+          { userId, targetLanguage },
+          { $inc: { xp: XP_CONFIG.QUIZ_CORRECT } },
+        );
+      }
 
       return ApiResponse.success(res, {
         conversationId,

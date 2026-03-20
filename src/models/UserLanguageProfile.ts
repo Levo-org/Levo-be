@@ -1,6 +1,8 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { SUPPORTED_LANGUAGES, LEVELS } from '@/utils/constants';
 
+type DerivedCachedProgressPercent = number;
+
 export interface IUserLanguageProfile extends Document {
   userId: mongoose.Types.ObjectId;
   targetLanguage: string;
@@ -9,12 +11,12 @@ export interface IUserLanguageProfile extends Document {
   userLevel: number;
   hearts: number;
   lastHeartLostAt: Date | null;
-  vocabularyProgress: number;
-  grammarProgress: number;
-  conversationProgress: number;
-  listeningProgress: number;
-  readingProgress: number;
-  quizProgress: number;
+  vocabularyProgress: DerivedCachedProgressPercent;
+  grammarProgress: DerivedCachedProgressPercent;
+  conversationProgress: DerivedCachedProgressPercent;
+  listeningProgress: DerivedCachedProgressPercent;
+  readingProgress: DerivedCachedProgressPercent;
+  quizProgress: DerivedCachedProgressPercent;
   streakShields: number;
   createdAt: Date;
   updatedAt: Date;

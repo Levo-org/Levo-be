@@ -7,6 +7,7 @@ import UserLanguageProfile from '@/models/UserLanguageProfile';
 import { REVIEW_INTERVALS_DAYS, XP_CONFIG } from '@/utils/constants';
 import { ApiResponse } from '@/utils/ApiResponse';
 import { ApiError } from '@/utils/ApiError';
+import { recordWrongAnswer } from '@/services/remediation.service';
 
 export class ReviewController {
   /** GET 복습 대시보드 */
@@ -36,7 +37,7 @@ export class ReviewController {
       ).length;
 
       const conversationDue = (progress.conversationStatus || []).filter(
-        (c) => !c.lastReviewedAt,
+        (c) => !c.lastReviewedAt || (c.nextReviewAt && c.nextReviewAt <= now),
       ).length;
 
       return ApiResponse.success(res, {
@@ -92,7 +93,7 @@ export class ReviewController {
         });
       } else if (category === 'conversation') {
         items = (progress.conversationStatus || []).filter(
-          (c) => !c.lastReviewedAt,
+          (c) => !c.lastReviewedAt || (c.nextReviewAt && c.nextReviewAt <= now),
         ).slice(0, limit);
       } else {
         throw ApiError.badRequest('유효하지 않은 카테고리입니다. (vocabulary, grammar, conversation)');
@@ -139,12 +140,21 @@ export class ReviewController {
           const nextIndex = Math.min(currentIndex + 1, REVIEW_INTERVALS_DAYS.length - 1);
           const nextDays = REVIEW_INTERVALS_DAYS[nextIndex];
           item.nextReviewAt = new Date(now.getTime() + nextDays * 24 * 60 * 60 * 1000);
-          item.status = 'completed';
+          item.status = item.correctCount >= 3 ? 'completed' : 'learning';
         } else {
           item.wrongCount = (item.wrongCount || 0) + 1;
           // 틀리면 1일 후로 리셋
           item.nextReviewAt = new Date(now.getTime() + REVIEW_INTERVALS_DAYS[0] * 24 * 60 * 60 * 1000);
           item.status = 'wrong';
+          await recordWrongAnswer({
+            userId,
+            targetLanguage,
+            contentType: 'vocabulary',
+            contentId: item.wordId,
+            question: '',
+            correctAnswer: '',
+            userAnswer: '',
+          });
         }
       } else if (category === 'grammar') {
         const item = progress.grammarStatus.find(
@@ -155,7 +165,8 @@ export class ReviewController {
         item.lastReviewedAt = now;
 
         if (correct) {
-          item.progress = Math.min((item.progress || 0) + 1, 100);
+          item.progress = Math.min((item.progress || 0) + 25, 100);
+          item.correctCount = (item.correctCount || 0) + 1;
           const currentIndex = REVIEW_INTERVALS_DAYS.findIndex(
             (days) => {
               if (!item.nextReviewAt || !item.lastReviewedAt) return true;
@@ -168,8 +179,57 @@ export class ReviewController {
           const nextIndex = Math.min(currentIndex + 1, REVIEW_INTERVALS_DAYS.length - 1);
           const nextDays = REVIEW_INTERVALS_DAYS[nextIndex];
           item.nextReviewAt = new Date(now.getTime() + nextDays * 24 * 60 * 60 * 1000);
+          item.masteryState = item.correctCount >= 3 ? 'completed' : 'learning';
         } else {
+          item.wrongCount = (item.wrongCount || 0) + 1;
           item.nextReviewAt = new Date(now.getTime() + REVIEW_INTERVALS_DAYS[0] * 24 * 60 * 60 * 1000);
+          item.masteryState = 'wrong';
+          await recordWrongAnswer({
+            userId,
+            targetLanguage,
+            contentType: 'grammar',
+            contentId: item.grammarId,
+            question: '',
+            correctAnswer: '',
+            userAnswer: '',
+          });
+        }
+      } else if (category === 'conversation') {
+        const item = progress.conversationStatus.find(
+          (c) => c.conversationId.toString() === contentId,
+        );
+        if (!item) throw ApiError.notFound('해당 회화의 학습 기록을 찾을 수 없습니다.');
+
+        item.lastReviewedAt = now;
+
+        if (correct) {
+          item.correctCount = (item.correctCount || 0) + 1;
+          const currentIndex = REVIEW_INTERVALS_DAYS.findIndex(
+            (days) => {
+              if (!item.nextReviewAt || !item.lastReviewedAt) return true;
+              const diff = Math.round(
+                (item.nextReviewAt.getTime() - item.lastReviewedAt.getTime()) / (1000 * 60 * 60 * 24),
+              );
+              return days >= diff;
+            },
+          );
+          const nextIndex = Math.min(currentIndex + 1, REVIEW_INTERVALS_DAYS.length - 1);
+          const nextDays = REVIEW_INTERVALS_DAYS[nextIndex];
+          item.nextReviewAt = new Date(now.getTime() + nextDays * 24 * 60 * 60 * 1000);
+          item.masteryState = item.correctCount >= 3 ? 'completed' : 'learning';
+        } else {
+          item.wrongCount = (item.wrongCount || 0) + 1;
+          item.nextReviewAt = new Date(now.getTime() + REVIEW_INTERVALS_DAYS[0] * 24 * 60 * 60 * 1000);
+          item.masteryState = 'wrong';
+          await recordWrongAnswer({
+            userId,
+            targetLanguage,
+            contentType: 'conversation',
+            contentId: item.conversationId,
+            question: '',
+            correctAnswer: '',
+            userAnswer: '',
+          });
         }
       } else {
         throw ApiError.badRequest('유효하지 않은 카테고리입니다.');

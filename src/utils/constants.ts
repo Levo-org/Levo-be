@@ -38,6 +38,11 @@ export const COIN_CONFIG = {
 // 간격 반복 (복습)
 export const REVIEW_INTERVALS_DAYS = [1, 3, 7, 14, 30, 90];
 
+// 오답/약점 복습 설정
+export const WRONG_ANSWER_MAX_ENTRIES = 200;
+export const REMEDIATION_STATUSES = ['pending', 'in_progress', 'resolved'] as const;
+export type RemediationStatus = typeof REMEDIATION_STATUSES[number];
+
 // 뱃지 카테고리
 export const BADGE_CATEGORIES = ['streak', 'learning', 'level', 'special'] as const;
 export type BadgeCategory = typeof BADGE_CATEGORIES[number];

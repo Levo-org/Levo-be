@@ -3,8 +3,14 @@ import { Request, Response, NextFunction } from 'express';
 import UserLanguageProfile from '@/models/UserLanguageProfile';
 import UserStreak from '@/models/UserStreak';
 import UserProgress from '@/models/UserProgress';
+import WrongAnswerEntry from '@/models/WrongAnswerEntry';
 import { ApiResponse } from '@/utils/ApiResponse';
 import { ApiError } from '@/utils/ApiError';
+import {
+  calculateCategoryRatio,
+  calculateLearningStats,
+  calculateProfileProgress,
+} from '@/services/learningSummary.service';
 
 export class StatsController {
   /** GET 학습 통계 */
@@ -24,50 +30,26 @@ export class StatsController {
       // 학습 진도
       const progress = await UserProgress.findOne({ userId, targetLanguage });
 
-      // 완료 통계
-      const completedLessons = progress?.completedLessons?.length || 0;
-      const learnedWords = (progress?.vocabularyStatus || []).filter(
-        (v) => v.status === 'completed',
-      ).length;
-      const learningWords = (progress?.vocabularyStatus || []).filter(
-        (v) => v.status === 'learning',
-      ).length;
-      const completedGrammar = (progress?.grammarStatus || []).filter(
-        (g) => g.progress >= 100,
-      ).length;
-      const totalGrammar = progress?.grammarStatus?.length || 0;
-      const completedConversations = (progress?.conversationStatus || []).filter(
-        (c) => c.completed,
-      ).length;
-      const totalConversations = progress?.conversationStatus?.length || 0;
+      const profileProgress = calculateProfileProgress(progress || null);
+      const learningStats = calculateLearningStats(progress || null);
+      const categoryRatio = calculateCategoryRatio(progress || null);
 
-      // 카테고리별 학습 비율
-      const totalItems = (progress?.vocabularyStatus?.length || 0)
-        + (progress?.grammarStatus?.length || 0)
-        + (progress?.conversationStatus?.length || 0);
-
-      const categoryRatio = {
-        vocabulary: totalItems > 0
-          ? Math.round(((progress?.vocabularyStatus?.length || 0) / totalItems) * 100)
-          : 0,
-        grammar: totalItems > 0
-          ? Math.round(((progress?.grammarStatus?.length || 0) / totalItems) * 100)
-          : 0,
-        conversation: totalItems > 0
-          ? Math.round(((progress?.conversationStatus?.length || 0) / totalItems) * 100)
-          : 0,
-      };
+      const wrongAnswerCount = await WrongAnswerEntry.countDocuments({
+        userId,
+        targetLanguage,
+        remediationStatus: { $in: ['pending', 'in_progress'] },
+      });
 
       return ApiResponse.success(res, {
         profile: {
           level: profile.level,
           userLevel: profile.userLevel,
           xp: profile.xp,
-          vocabularyProgress: profile.vocabularyProgress,
-          grammarProgress: profile.grammarProgress,
-          conversationProgress: profile.conversationProgress,
-          listeningProgress: profile.listeningProgress,
-          readingProgress: profile.readingProgress,
+          vocabularyProgress: profileProgress.vocabularyProgress,
+          grammarProgress: profileProgress.grammarProgress,
+          conversationProgress: profileProgress.conversationProgress,
+          listeningProgress: profileProgress.listeningProgress,
+          readingProgress: profileProgress.readingProgress,
         },
         streak: streak ? {
           currentStreak: streak.currentStreak,
@@ -80,16 +62,7 @@ export class StatsController {
           lastStudyDate: null,
           weeklyRecord: [],
         },
-        learning: {
-          completedLessons,
-          learnedWords,
-          learningWords,
-          completedGrammar,
-          totalGrammar,
-          completedConversations,
-          totalConversations,
-          wrongAnswers: progress?.wrongAnswers?.length || 0,
-        },
+        learning: { ...learningStats, wrongAnswers: wrongAnswerCount },
         categoryRatio,
         period,
       }, '학습 통계 조회 성공');

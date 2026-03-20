@@ -6,6 +6,7 @@ import Listening from '@/models/Listening';
 import UserProgress from '@/models/UserProgress';
 import UserLanguageProfile from '@/models/UserLanguageProfile';
 import { XP_CONFIG } from '@/utils/constants';
+import { recordWrongAnswer } from '@/services/remediation.service';
 
 export class ListeningController {
   /** 듣기 연습 목록 조회 */
@@ -54,6 +55,7 @@ export class ListeningController {
       }
 
       if (!correct) {
+        // TODO: legacy embedded wrongAnswers — remove after migration to WrongAnswerEntry collection
         userProgress.wrongAnswers.push({
           type: 'listening',
           contentId: listening._id,
@@ -63,6 +65,15 @@ export class ListeningController {
           createdAt: new Date(),
         });
         await userProgress.save();
+        await recordWrongAnswer({
+          userId,
+          targetLanguage,
+          contentType: 'listening',
+          contentId: listening._id,
+          question: listening.audioText,
+          correctAnswer: listening.correctAnswer,
+          userAnswer: answer,
+        });
       }
 
       // XP 지급 (정답인 경우)

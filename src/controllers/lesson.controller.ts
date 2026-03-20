@@ -148,6 +148,62 @@ export class LessonController {
         progress.completedLessons.push(id);
       }
       progress.currentLessonId = null;
+
+      // Lesson linkage: introduce vocabulary items from this lesson
+      if (lesson.newWords && lesson.newWords.length > 0) {
+        for (const wordId of lesson.newWords) {
+          const existing = progress.vocabularyStatus.find(
+            (v) => v.wordId.toString() === wordId.toString(),
+          );
+          if (existing) {
+            // Only set introducedByLessonId if not already set (first lesson wins)
+            if (!existing.introducedByLessonId) {
+              existing.introducedByLessonId = lesson._id;
+            }
+            existing.lastPracticedInLessonId = lesson._id;
+          } else {
+            progress.vocabularyStatus.push({
+              wordId,
+              status: 'new',
+              correctCount: 0,
+              wrongCount: 0,
+              lastReviewedAt: null,
+              nextReviewAt: null,
+              introducedByLessonId: lesson._id,
+              lastPracticedInLessonId: lesson._id,
+            });
+          }
+        }
+      }
+
+      // Lesson linkage: introduce grammar items from this lesson
+      if (lesson.grammarPoints && lesson.grammarPoints.length > 0) {
+        for (const grammarId of lesson.grammarPoints) {
+          const existing = progress.grammarStatus.find(
+            (g) => g.grammarId.toString() === grammarId.toString(),
+          );
+          if (existing) {
+            if (!existing.introducedByLessonId) {
+              existing.introducedByLessonId = lesson._id;
+            }
+            existing.lastPracticedInLessonId = lesson._id;
+          } else {
+            progress.grammarStatus.push({
+              grammarId,
+              progress: 0,
+              quizScore: 0,
+              lastReviewedAt: null,
+              nextReviewAt: null,
+              masteryState: 'new',
+              correctCount: 0,
+              wrongCount: 0,
+              introducedByLessonId: lesson._id,
+              lastPracticedInLessonId: lesson._id,
+            });
+          }
+        }
+      }
+
       await progress.save();
 
       // XP 지급

@@ -10,6 +10,7 @@ import CoinTransaction from '@/models/CoinTransaction';
 import { XP_CONFIG, COIN_CONFIG } from '@/utils/constants';
 import { ApiResponse } from '@/utils/ApiResponse';
 import { ApiError } from '@/utils/ApiError';
+import { recordWrongAnswer } from '@/services/remediation.service';
 
 export class QuizController {
   /** GET 데일리 퀴즈 생성 */
@@ -94,7 +95,7 @@ export class QuizController {
     try {
       const userId = req.user._id;
       const targetLanguage = (req.query.targetLanguage as string) || req.user.activeLanguage;
-      const { questionType, contentId, answer, correctAnswer } = req.body;
+      const { questionType, contentId, answer, correctAnswer, question } = req.body;
 
       const isCorrect = answer === correctAnswer;
 
@@ -110,15 +111,25 @@ export class QuizController {
       }
 
       if (!isCorrect) {
+        // TODO: legacy embedded wrongAnswers — remove after migration to WrongAnswerEntry collection
         progress.wrongAnswers.push({
           type: questionType,
           contentId,
-          question: '',
+          question: question || '',
           userAnswer: answer,
           correctAnswer,
           createdAt: new Date(),
         });
         await progress.save();
+        await recordWrongAnswer({
+          userId,
+          targetLanguage,
+          contentType: questionType,
+          contentId,
+          question: question || '',
+          correctAnswer,
+          userAnswer: answer,
+        });
       } else {
         // 정답 시 XP 지급
         const profile = await UserLanguageProfile.findOne({ userId, targetLanguage });

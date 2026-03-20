@@ -5,7 +5,8 @@ import { ApiError } from '@/utils/ApiError';
 import Grammar from '@/models/Grammar';
 import UserProgress from '@/models/UserProgress';
 import UserLanguageProfile from '@/models/UserLanguageProfile';
-import { XP_CONFIG } from '@/utils/constants';
+import { REVIEW_INTERVALS_DAYS, XP_CONFIG } from '@/utils/constants';
+import { recordWrongAnswer } from '@/services/remediation.service';
 
 export class GrammarController {
   /** 문법 목록 조회 */
@@ -95,17 +96,72 @@ export class GrammarController {
         const entry = userProgress.grammarStatus[statusIndex];
         if (correct) {
           entry.quizScore += 1;
+          entry.correctCount = (entry.correctCount || 0) + 1;
           entry.progress = Math.min(entry.progress + 25, 100);
+          const intervalIndex = Math.min(entry.correctCount - 1, REVIEW_INTERVALS_DAYS.length - 1);
+          const nextReviewDate = new Date();
+          nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[intervalIndex]);
+          entry.nextReviewAt = nextReviewDate;
+          entry.masteryState = entry.correctCount >= 3 ? 'completed' : 'learning';
+        } else {
+          entry.wrongCount = (entry.wrongCount || 0) + 1;
+          entry.masteryState = 'wrong';
+          const nextReviewDate = new Date();
+          nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[0]);
+          entry.nextReviewAt = nextReviewDate;
+          // TODO: legacy embedded wrongAnswers — remove after migration to WrongAnswerEntry collection
+          userProgress.wrongAnswers.push({
+            type: 'grammar',
+            contentId: grammar._id,
+            question: grammar.title,
+            userAnswer: '',
+            correctAnswer: grammar.pattern || grammar.formula || '',
+            createdAt: new Date(),
+          });
+          await recordWrongAnswer({
+            userId,
+            targetLanguage,
+            contentType: 'grammar',
+            contentId: grammar._id,
+            question: grammar.title,
+            correctAnswer: grammar.pattern || grammar.formula || '',
+            userAnswer: '',
+          });
         }
         entry.lastReviewedAt = new Date();
       } else {
+        const nextReviewDate = new Date();
+        nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[0]);
         userProgress.grammarStatus.push({
           grammarId,
           progress: correct ? 25 : 0,
           quizScore: correct ? 1 : 0,
           lastReviewedAt: new Date(),
-          nextReviewAt: null,
+          nextReviewAt: nextReviewDate,
+          masteryState: correct ? 'learning' : 'wrong',
+          correctCount: correct ? 1 : 0,
+          wrongCount: correct ? 0 : 1,
         });
+        if (!correct) {
+          // TODO: legacy embedded wrongAnswers — remove after migration to WrongAnswerEntry collection
+          userProgress.wrongAnswers.push({
+            type: 'grammar',
+            contentId: grammar._id,
+            question: grammar.title,
+            userAnswer: '',
+            correctAnswer: grammar.pattern || grammar.formula || '',
+            createdAt: new Date(),
+          });
+          await recordWrongAnswer({
+            userId,
+            targetLanguage,
+            contentType: 'grammar',
+            contentId: grammar._id,
+            question: grammar.title,
+            correctAnswer: grammar.pattern || grammar.formula || '',
+            userAnswer: '',
+          });
+        }
       }
 
       await userProgress.save();

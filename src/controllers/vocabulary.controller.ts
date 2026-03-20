@@ -6,6 +6,7 @@ import Vocabulary from '@/models/Vocabulary';
 import UserProgress from '@/models/UserProgress';
 import UserLanguageProfile from '@/models/UserLanguageProfile';
 import { REVIEW_INTERVALS_DAYS, XP_CONFIG } from '@/utils/constants';
+import { recordWrongAnswer } from '@/services/remediation.service';
 
 export class VocabularyController {
   /** 단어 목록 조회 */
@@ -123,17 +124,19 @@ export class VocabularyController {
       if (statusIndex >= 0) {
         const entry = userProgress.vocabularyStatus[statusIndex];
         if (correct) {
-          entry.correctCount += 1;
+          entry.correctCount = (entry.correctCount || 0) + 1;
           const intervalIndex = Math.min(entry.correctCount - 1, REVIEW_INTERVALS_DAYS.length - 1);
           const nextReviewDate = new Date();
           nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[intervalIndex]);
           entry.nextReviewAt = nextReviewDate;
           entry.status = entry.correctCount >= 3 ? 'completed' : 'learning';
         } else {
-          entry.wrongCount += 1;
+          entry.wrongCount = (entry.wrongCount || 0) + 1;
           entry.status = 'wrong';
-          entry.nextReviewAt = new Date();
-          // 오답 기록 추가
+          const nextReviewDate = new Date();
+          nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[0]);
+          entry.nextReviewAt = nextReviewDate;
+          // TODO: legacy embedded wrongAnswers — remove after migration to WrongAnswerEntry collection
           userProgress.wrongAnswers.push({
             type: 'vocabulary',
             contentId: vocabulary._id,
@@ -142,13 +145,20 @@ export class VocabularyController {
             correctAnswer: vocabulary.meaning,
             createdAt: new Date(),
           });
+          await recordWrongAnswer({
+            userId,
+            targetLanguage,
+            contentType: 'vocabulary',
+            contentId: vocabulary._id,
+            question: vocabulary.word,
+            correctAnswer: vocabulary.meaning,
+            userAnswer: '',
+          });
         }
         entry.lastReviewedAt = new Date();
       } else {
         const nextReviewDate = new Date();
-        if (correct) {
-          nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[0]);
-        }
+        nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[0]);
         userProgress.vocabularyStatus.push({
           wordId,
           status: correct ? 'learning' : 'wrong',
@@ -158,6 +168,7 @@ export class VocabularyController {
           nextReviewAt: nextReviewDate,
         });
         if (!correct) {
+          // TODO: legacy embedded wrongAnswers — remove after migration to WrongAnswerEntry collection
           userProgress.wrongAnswers.push({
             type: 'vocabulary',
             contentId: vocabulary._id,
@@ -165,6 +176,15 @@ export class VocabularyController {
             userAnswer: '',
             correctAnswer: vocabulary.meaning,
             createdAt: new Date(),
+          });
+          await recordWrongAnswer({
+            userId,
+            targetLanguage,
+            contentType: 'vocabulary',
+            contentId: vocabulary._id,
+            question: vocabulary.word,
+            correctAnswer: vocabulary.meaning,
+            userAnswer: '',
           });
         }
       }

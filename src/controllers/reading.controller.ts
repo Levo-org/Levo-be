@@ -6,6 +6,7 @@ import Reading from '@/models/Reading';
 import UserProgress from '@/models/UserProgress';
 import UserLanguageProfile from '@/models/UserLanguageProfile';
 import { XP_CONFIG } from '@/utils/constants';
+import { recordWrongAnswer } from '@/services/remediation.service';
 
 export class ReadingController {
   /** 읽기 지문 목록 조회 */
@@ -77,6 +78,7 @@ export class ReadingController {
       }
 
       if (!correct) {
+        // TODO: legacy embedded wrongAnswers — remove after migration to WrongAnswerEntry collection
         userProgress.wrongAnswers.push({
           type: 'reading',
           contentId: reading._id,
@@ -86,6 +88,15 @@ export class ReadingController {
           createdAt: new Date(),
         });
         await userProgress.save();
+        await recordWrongAnswer({
+          userId,
+          targetLanguage,
+          contentType: 'reading',
+          contentId: reading._id,
+          question: quiz.question,
+          correctAnswer: String(quiz.correctAnswer),
+          userAnswer: String(answer),
+        });
       }
 
       // XP 지급 (정답인 경우)
