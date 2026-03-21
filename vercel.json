@@ -3,7 +3,10 @@
   "installCommand": "npm install --include=dev && npm run build",
   "functions": {
     "api/index.js": {
-      "includeFiles": "dist/**"
+      "includeFiles": [
+        "dist/**",
+        "node_modules/swagger-ui-dist/**"
+      ]
     }
   },
   "rewrites": [
