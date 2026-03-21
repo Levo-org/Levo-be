@@ -1,15 +1,18 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "outputDirectory": ".",
   "builds": [
     {
-      "src": "api/minimal-test.js",
+      "src": "api/index.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/api/minimal-test.js"
+      "dest": "/api/index.js"
     }
   ]
 }
