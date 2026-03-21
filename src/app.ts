@@ -44,7 +44,7 @@ app.use('/api', apiLimiter);
 
 // ─── Static Files & Auth Test Page ──────────────────
 app.use(express.static(path.join(__dirname, '..', 'public')));
-app.use('/api-docs', express.static(path.join(__dirname, '..', 'swagger-ui-dist')));
+app.use('/api-docs', express.static(path.join(__dirname, 'swagger-ui-dist')));
 app.get('/auth-test', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'auth-test.html'));
 });
