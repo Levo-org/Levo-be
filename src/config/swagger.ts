@@ -89,7 +89,7 @@ const options: swaggerJsdoc.Options = {
       { name: 'Home', description: '홈 화면 집계' },
     ],
   },
-  apis: ['./src/routes/*.ts'],
+  apis: ['./src/routes/**/*.ts'],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

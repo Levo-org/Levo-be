@@ -8,6 +8,7 @@ export interface IUser extends Document {
   role: UserRole;
   provider: 'google' | 'apple' | 'email';
   providerId: string;
+  passwordHash?: string;
   activeLanguage: string;
   settings: {
     dailyGoalMinutes: number;
@@ -32,6 +33,7 @@ const userSchema = new Schema<IUser>(
     role: { type: String, enum: USER_ROLES, default: 'learner' },
     provider: { type: String, enum: ['google', 'apple', 'email'], required: true },
     providerId: { type: String, required: true },
+    passwordHash: { type: String, required: false },
     activeLanguage: { type: String, enum: SUPPORTED_LANGUAGES, default: 'en' },
     settings: {
       dailyGoalMinutes: { type: Number, default: 10, enum: [5, 10, 15, 20] },

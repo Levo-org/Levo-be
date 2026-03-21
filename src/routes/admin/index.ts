@@ -2,12 +2,15 @@ import { Router } from 'express';
 import { auth } from '@/middleware/auth';
 import { requireRole } from '@/middleware/requireRole';
 import { ApiResponse } from '@/utils/ApiResponse';
+import authRoutes from '@/routes/admin/auth.routes';
 import importRoutes from '@/routes/admin/import.routes';
 import contentRoutes from '@/routes/admin/content.routes';
 import workflowRoutes from '@/routes/admin/workflow.routes';
 import opsRoutes from '@/routes/admin/ops.routes';
 
 const router = Router();
+
+router.use('/auth', authRoutes);
 
 router.use(auth, requireRole('admin', 'reviewer', 'editor'));
 
