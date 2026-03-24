@@ -1,4 +1,10 @@
+import path from 'path';
 import swaggerJsdoc from 'swagger-jsdoc';
+
+const isCompiled = __dirname.includes('/dist/');
+const routeFiles = isCompiled
+  ? [path.join(__dirname, '../routes/**/*.js')]
+  : [path.join(__dirname, '../routes/**/*.ts')];
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -89,7 +95,7 @@ const options: swaggerJsdoc.Options = {
       { name: 'Home', description: '홈 화면 집계' },
     ],
   },
-  apis: ['./src/routes/**/*.ts'],
+  apis: routeFiles,
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
