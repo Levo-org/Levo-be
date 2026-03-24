@@ -39,5 +39,15 @@ const vocabularySchema = new Schema<IVocabulary>(
 
 vocabularySchema.index({ targetLanguage: 1, level: 1, chapter: 1 });
 vocabularySchema.index({ targetLanguage: 1, level: 1, order: 1 });
+vocabularySchema.index(
+  { targetLanguage: 1, sourceReference: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      datasetManaged: true,
+      sourceReference: { $exists: true, $type: 'string' },
+    },
+  },
+);
 
 export default mongoose.model<IVocabulary>('Vocabulary', vocabularySchema);

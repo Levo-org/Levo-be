@@ -5,6 +5,7 @@ const config: Config = {
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
   testMatch: ['**/*.test.ts'],
+  setupFiles: ['<rootDir>/tests/loadEnv.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },

@@ -7,6 +7,7 @@ import UserProgress from '@/models/UserProgress';
 import UserLanguageProfile from '@/models/UserLanguageProfile';
 import { XP_CONFIG } from '@/utils/constants';
 import { recordWrongAnswer } from '@/services/remediation.service';
+import { serializeReadingForPractice } from '@/serializers/learningContent.serializer';
 
 export class ReadingController {
   /** 읽기 지문 목록 조회 */
@@ -26,7 +27,18 @@ export class ReadingController {
         Reading.countDocuments(filter),
       ]);
 
-      return ApiResponse.paginated(res, readings, {
+      const serialized = readings.map((reading) =>
+        serializeReadingForPractice({
+          _id: reading._id.toString(),
+          title: reading.title,
+          content: reading.content,
+          translation: reading.translation,
+          difficulty: reading.difficulty,
+          quizzes: reading.quizzes,
+        }),
+      );
+
+      return ApiResponse.paginated(res, serialized, {
         page,
         limit,
         total,
@@ -43,13 +55,16 @@ export class ReadingController {
       const reading = await Reading.findOne({ _id: req.params.id, status: 'published' });
       if (!reading) throw ApiError.notFound('읽기 지문을 찾을 수 없습니다.');
 
-      return ApiResponse.success(res, {
-        reading: {
-          ...reading.toObject(),
-          content: reading.content,
-          quizzes: reading.quizzes,
-        },
-      }, '읽기 상세 조회 성공');
+      const serialized = serializeReadingForPractice({
+        _id: reading._id.toString(),
+        title: reading.title,
+        content: reading.content,
+        translation: reading.translation,
+        difficulty: reading.difficulty,
+        quizzes: reading.quizzes,
+      });
+
+      return ApiResponse.success(res, serialized, '읽기 상세 조회 성공');
     } catch (err) {
       next(err);
     }
@@ -59,7 +74,9 @@ export class ReadingController {
   submitQuizAnswer = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user._id;
-      const { readingId, quizIndex, answer } = req.body;
+      const readingId = req.params.id;
+      const { quizIndex } = req.body;
+      const selectedAnswer = req.body.selectedAnswer ?? req.body.answer;
       const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
 
       const reading = await Reading.findById(readingId);
@@ -70,7 +87,7 @@ export class ReadingController {
       }
 
       const quiz = reading.quizzes[quizIndex];
-      const correct = answer === quiz.correctAnswer;
+      const correct = selectedAnswer === quiz.correctAnswer;
 
       let userProgress = await UserProgress.findOne({ userId, targetLanguage });
       if (!userProgress) {
@@ -83,7 +100,7 @@ export class ReadingController {
           type: 'reading',
           contentId: reading._id,
           question: quiz.question,
-          userAnswer: String(answer),
+          userAnswer: String(selectedAnswer),
           correctAnswer: String(quiz.correctAnswer),
           createdAt: new Date(),
         });
@@ -95,7 +112,7 @@ export class ReadingController {
           contentId: reading._id,
           question: quiz.question,
           correctAnswer: String(quiz.correctAnswer),
-          userAnswer: String(answer),
+          userAnswer: String(selectedAnswer),
         });
       }
 

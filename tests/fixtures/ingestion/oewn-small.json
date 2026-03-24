@@ -1,0 +1,23 @@
+[
+  {
+    "id": "oewn:apple:noun:1",
+    "lemma": "apple",
+    "pos": "noun",
+    "gloss": "A round fruit that is typically red, green, or yellow.",
+    "frequency": 2450
+  },
+  {
+    "id": "oewn:book:noun:1",
+    "lemma": "book",
+    "pos": "noun",
+    "gloss": "A written or printed work consisting of pages bound together.",
+    "frequency": 3100
+  },
+  {
+    "id": "oewn:travel:verb:1",
+    "lemma": "travel",
+    "pos": "verb",
+    "gloss": "To go from one place to another.",
+    "frequency": 1700
+  }
+]

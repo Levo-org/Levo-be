@@ -7,6 +7,7 @@ import UserProgress from '@/models/UserProgress';
 import UserLanguageProfile from '@/models/UserLanguageProfile';
 import { XP_CONFIG } from '@/utils/constants';
 import { recordWrongAnswer } from '@/services/remediation.service';
+import { serializeListeningPractice } from '@/services/listening/serializer';
 
 export class ListeningController {
   /** 듣기 연습 목록 조회 */
@@ -26,7 +27,27 @@ export class ListeningController {
         Listening.countDocuments(filter),
       ]);
 
-      return ApiResponse.paginated(res, listenings, {
+      const sameBucket = await Listening.find(filter).sort({ order: 1 });
+      const bucketAnswers = sameBucket.map((item) => item.correctAnswer);
+
+      const serialized = listenings.map((item) => {
+        const distractors = bucketAnswers
+          .filter((answer) => answer !== item.correctAnswer)
+          .sort((a, b) => a.localeCompare(b))
+          .slice(0, 3);
+
+        return serializeListeningPractice(
+          {
+            _id: item._id,
+            audioText: item.audioText,
+            correctAnswer: item.correctAnswer,
+            difficulty: item.difficulty,
+          },
+          distractors,
+        );
+      });
+
+      return ApiResponse.paginated(res, serialized, {
         page,
         limit,
         total,
@@ -41,7 +62,8 @@ export class ListeningController {
   submitAnswer = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user._id;
-      const { listeningId, answer } = req.body;
+      const listeningId = req.params.id;
+      const { answer } = req.body;
       const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
 
       const listening = await Listening.findOne({ _id: listeningId, status: 'published' });
@@ -77,17 +99,25 @@ export class ListeningController {
       }
 
       // XP 지급 (정답인 경우)
+      let xpEarned = 0;
+      let heartsRemaining: number | undefined;
       if (correct) {
         await UserLanguageProfile.findOneAndUpdate(
           { userId, targetLanguage },
           { $inc: { xp: XP_CONFIG.QUIZ_CORRECT } },
         );
+        xpEarned = XP_CONFIG.QUIZ_CORRECT;
       }
+
+      const profile = await UserLanguageProfile.findOne({ userId, targetLanguage });
+      heartsRemaining = profile?.hearts;
 
       return ApiResponse.success(res, {
         correct,
         correctAnswer: listening.correctAnswer,
         userAnswer: answer,
+        xpEarned,
+        heartsRemaining,
       }, correct ? '정답입니다!' : '오답입니다.');
     } catch (err) {
       next(err);

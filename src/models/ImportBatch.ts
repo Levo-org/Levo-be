@@ -12,6 +12,9 @@ export interface IImportBatch extends Omit<Document, 'errors'> {
   fileName: string;
   fileType: 'csv' | 'xlsx';
   contentType: string;
+  sourceDataset?: string;
+  datasetVersion?: string;
+  artifactChecksum?: string;
   status: ImportStatus;
   uploadedBy: Types.ObjectId;
   totalRows: number;
@@ -21,6 +24,9 @@ export interface IImportBatch extends Omit<Document, 'errors'> {
   importedRows: number;
   errors: IImportBatchError[];
   metadata?: Record<string, unknown>;
+  startedAt?: Date;
+  failedAt?: Date;
+  failureReason?: string;
   completedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -31,6 +37,9 @@ const importBatchSchema = new Schema<IImportBatch>(
     fileName: { type: String, required: true },
     fileType: { type: String, enum: ['csv', 'xlsx'], required: true },
     contentType: { type: String, required: true },
+    sourceDataset: { type: String },
+    datasetVersion: { type: String },
+    artifactChecksum: { type: String },
     status: { type: String, enum: IMPORT_STATUSES, required: true, index: true },
     uploadedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     totalRows: { type: Number, default: 0 },
@@ -46,11 +55,15 @@ const importBatchSchema = new Schema<IImportBatch>(
       },
     ],
     metadata: { type: Schema.Types.Mixed },
+    startedAt: { type: Date },
+    failedAt: { type: Date },
+    failureReason: { type: String },
     completedAt: { type: Date },
   },
   { timestamps: true }
 );
 
 importBatchSchema.index({ createdAt: 1 });
+importBatchSchema.index({ contentType: 1, status: 1, createdAt: -1 });
 
 export default mongoose.model<IImportBatch>('ImportBatch', importBatchSchema);

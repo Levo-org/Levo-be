@@ -60,5 +60,15 @@ const grammarSchema = new Schema<IGrammar>(
 );
 
 grammarSchema.index({ targetLanguage: 1, level: 1 });
+grammarSchema.index(
+  { targetLanguage: 1, sourceReference: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      datasetManaged: true,
+      sourceReference: { $exists: true, $type: 'string' },
+    },
+  },
+);
 
 export default mongoose.model<IGrammar>('Grammar', grammarSchema);

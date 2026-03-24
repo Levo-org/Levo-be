@@ -50,6 +50,26 @@ router.get('/', auth, controller.getList);
  *     responses:
  *       200:
  *         description: 정답 제출 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     correct:
+ *                       type: boolean
+ *                     correctAnswer:
+ *                       type: string
+ *                     userAnswer:
+ *                       type: string
+ *                     xpEarned:
+ *                       type: number
+ *                     heartsRemaining:
+ *                       type: number
  */
 router.post('/:id/answer', auth, controller.submitAnswer);
 

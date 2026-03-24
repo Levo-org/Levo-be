@@ -7,6 +7,7 @@ import UserProgress from '@/models/UserProgress';
 import UserLanguageProfile from '@/models/UserLanguageProfile';
 import { REVIEW_INTERVALS_DAYS, XP_CONFIG } from '@/utils/constants';
 import { recordWrongAnswer } from '@/services/remediation.service';
+import { serializeConversationDetail } from '@/serializers/learningContent.serializer';
 
 export class ConversationController {
   /** 회화 목록 조회 */
@@ -26,7 +27,23 @@ export class ConversationController {
         Conversation.countDocuments(filter),
       ]);
 
-      return ApiResponse.paginated(res, conversations, {
+      const progress = await UserProgress.findOne({ userId: req.user._id, targetLanguage });
+      const completedSet = new Set(
+        (progress?.conversationStatus ?? [])
+          .filter((item) => item.completed)
+          .map((item) => item.conversationId.toString()),
+      );
+
+      const serialized = conversations.map((item) => ({
+        _id: item._id,
+        emoji: item.emoji,
+        title: item.title,
+        level: item.level,
+        completed: completedSet.has(item._id.toString()),
+        locked: false,
+      }));
+
+      return ApiResponse.paginated(res, serialized, {
         page,
         limit,
         total,
@@ -43,13 +60,16 @@ export class ConversationController {
       const conversation = await Conversation.findOne({ _id: req.params.id, status: 'published' });
       if (!conversation) throw ApiError.notFound('회화를 찾을 수 없습니다.');
 
-      return ApiResponse.success(res, {
-        conversation: {
-          ...conversation.toObject(),
-          dialogs: conversation.dialogs,
-          keyExpressions: conversation.keyExpressions,
-        },
-      }, '회화 상세 조회 성공');
+      const serialized = serializeConversationDetail({
+        _id: conversation._id.toString(),
+        emoji: conversation.emoji,
+        title: conversation.title,
+        level: conversation.level,
+        dialogs: conversation.dialogs,
+        keyExpressions: conversation.keyExpressions,
+      });
+
+      return ApiResponse.success(res, serialized, '회화 상세 조회 성공');
     } catch (err) {
       next(err);
     }
@@ -59,7 +79,8 @@ export class ConversationController {
   submitPractice = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user._id;
-      const { conversationId, pronunciationScore, correct } = req.body;
+      const conversationId = req.params.id;
+      const { pronunciationScore, correct } = req.body;
       const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
 
       const conversation = await Conversation.findById(conversationId);

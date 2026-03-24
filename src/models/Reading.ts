@@ -7,6 +7,7 @@ export interface IReading extends Document, IEditorialMetadata {
   title: string;
   difficulty: string;
   content: string;
+  translation: string;
   wordCount: number;
   quizzes: Array<{
     question: string;
@@ -24,6 +25,7 @@ const readingSchema = new Schema<IReading>(
     title: { type: String, required: true },
     difficulty: { type: String, enum: LEVELS, required: true },
     content: { type: String, required: true },
+    translation: { type: String, default: '' },
     wordCount: { type: Number, default: 0 },
     quizzes: [
       {
@@ -40,5 +42,15 @@ const readingSchema = new Schema<IReading>(
 );
 
 readingSchema.index({ targetLanguage: 1, difficulty: 1 });
+readingSchema.index(
+  { targetLanguage: 1, sourceReference: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      datasetManaged: true,
+      sourceReference: { $exists: true, $type: 'string' },
+    },
+  },
+);
 
 export default mongoose.model<IReading>('Reading', readingSchema);

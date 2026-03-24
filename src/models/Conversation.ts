@@ -50,5 +50,15 @@ const conversationSchema = new Schema<IConversation>(
 );
 
 conversationSchema.index({ targetLanguage: 1, level: 1 });
+conversationSchema.index(
+  { targetLanguage: 1, sourceReference: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      datasetManaged: true,
+      sourceReference: { $exists: true, $type: 'string' },
+    },
+  },
+);
 
 export default mongoose.model<IConversation>('Conversation', conversationSchema);

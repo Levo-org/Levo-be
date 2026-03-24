@@ -28,5 +28,15 @@ const listeningSchema = new Schema<IListening>(
 );
 
 listeningSchema.index({ targetLanguage: 1, difficulty: 1 });
+listeningSchema.index(
+  { targetLanguage: 1, sourceReference: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      datasetManaged: true,
+      sourceReference: { $exists: true, $type: 'string' },
+    },
+  },
+);
 
 export default mongoose.model<IListening>('Listening', listeningSchema);

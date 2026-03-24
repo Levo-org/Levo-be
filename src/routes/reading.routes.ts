@@ -71,6 +71,22 @@ router.get('/:id', auth, controller.getDetail);
  *     responses:
  *       200:
  *         description: 정답 제출 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     correct:
+ *                       type: boolean
+ *                     correctAnswer:
+ *                       type: number
+ *                     explanation:
+ *                       type: string
  */
 router.post('/:id/quiz/answer', auth, controller.submitQuizAnswer);
 

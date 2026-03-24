@@ -63,13 +63,29 @@ router.get('/:id', auth, controller.getDetail);
  *           schema:
  *             type: object
  *             properties:
- *               dialogIndex:
- *                 type: number
  *               pronunciationScore:
  *                 type: number
+ *               correct:
+ *                 type: boolean
  *     responses:
  *       200:
  *         description: 결과 저장 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     conversationId:
+ *                       type: string
+ *                     pronunciationScore:
+ *                       type: number
+ *                     conversationStatus:
+ *                       type: object
  */
 router.post('/:id/practice', auth, controller.submitPractice);
 

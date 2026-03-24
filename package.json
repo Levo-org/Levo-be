@@ -12,10 +12,18 @@
     "lint": "eslint src/ --ext .ts",
     "lint:fix": "eslint src/ --ext .ts --fix",
     "test": "jest --forceExit --detectOpenHandles",
+    "test:ci": "jest --runInBand --forceExit --detectOpenHandles",
     "test:watch": "jest --watch --forceExit --detectOpenHandles",
     "test:coverage": "jest --coverage --forceExit --detectOpenHandles",
     "migrate:progress": "ts-node -r tsconfig-paths/register src/scripts/migrate-to-item-progress.ts",
     "migrate:seed": "ts-node -r tsconfig-paths/register src/scripts/migrateSeedToDb.ts",
+    "ingest:oewn": "ts-node -r tsconfig-paths/register src/scripts/ingest/oewn.ts",
+    "ingest:jmdict": "ts-node -r tsconfig-paths/register src/scripts/ingest/jmdict.ts",
+    "ingest:cedict": "ts-node -r tsconfig-paths/register src/scripts/ingest/cedict.ts",
+    "ingest:tatoeba-sentences": "ts-node -r tsconfig-paths/register src/scripts/ingest/tatoeba-sentences.ts",
+    "build:reading-passages": "ts-node -r tsconfig-paths/register src/scripts/build-reading-passages.ts",
+    "build:listening-items": "ts-node -r tsconfig-paths/register src/scripts/build-listening-items.ts",
+    "backfill:ko": "ts-node -r tsconfig-paths/register src/scripts/backfill-ko.ts",
     "create-admin": "ts-node -r tsconfig-paths/register src/scripts/createAdminUser.ts"
   },
   "dependencies": {
