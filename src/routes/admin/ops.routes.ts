@@ -34,4 +34,17 @@ router.get('/dashboard', opsController.getDashboard);
  */
 router.get('/health', opsController.getHealth);
 
+/**
+ * @swagger
+ * /admin/ops/vocabulary/english:
+ *   delete:
+ *     tags: [Admin - Ops]
+ *     summary: Permanently delete English vocabulary entries
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200:
+ *         description: Deleted English vocabulary entries
+ */
+router.delete('/vocabulary/english', opsController.deleteEnglishVocabulary);
+
 export default router;

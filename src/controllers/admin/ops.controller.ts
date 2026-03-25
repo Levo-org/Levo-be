@@ -11,6 +11,24 @@ import mongoose from 'mongoose';
 import { ApiError } from '@/utils/ApiError';
 
 export class OpsController {
+  deleteEnglishVocabulary = async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const deletedCount = await Vocabulary.countDocuments({ targetLanguage: 'en' });
+
+      if (deletedCount > 0) {
+        await Vocabulary.deleteMany({ targetLanguage: 'en' });
+      }
+
+      return ApiResponse.success(res, {
+        targetLanguage: 'en',
+        deletedCount,
+      }, '영어 단어 데이터 삭제 완료');
+    } catch (err) {
+      if (err instanceof ApiError) return next(err);
+      next(err);
+    }
+  };
+
   getDashboard = async (_req: Request, res: Response, next: NextFunction) => {
     try {
       // content counts by status per type
