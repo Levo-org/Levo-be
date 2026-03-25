@@ -8,6 +8,7 @@ import Grammar from '@/models/Grammar';
 import Conversation from '@/models/Conversation';
 import Listening from '@/models/Listening';
 import Reading from '@/models/Reading';
+import ExampleSentence from '@/models/ExampleSentence';
 import Lesson from '@/models/Lesson';
 import Badge from '@/models/Badge';
 import ImportBatch from '@/models/ImportBatch';
@@ -74,6 +75,12 @@ interface MigrationSummary {
   upsertedCount: number;
   modifiedCount: number;
   importBatchId: Types.ObjectId;
+}
+
+interface PublishSummary {
+  contentType: string;
+  matchedCount: number;
+  modifiedCount: number;
 }
 
 // ─── Import batch creation ────────────────────────────
@@ -228,6 +235,46 @@ async function migrateBadges(): Promise<void> {
   );
 }
 
+async function publishExistingEditorialContent(): Promise<PublishSummary[]> {
+  const publishedAt = new Date();
+  const editorialModels: Array<{ contentType: string; model: Model<unknown> }> = [
+    { contentType: 'vocabulary', model: Vocabulary as Model<unknown> },
+    { contentType: 'grammar', model: Grammar as Model<unknown> },
+    { contentType: 'conversation', model: Conversation as Model<unknown> },
+    { contentType: 'listening', model: Listening as Model<unknown> },
+    { contentType: 'reading', model: Reading as Model<unknown> },
+    { contentType: 'exampleSentence', model: ExampleSentence as Model<unknown> },
+  ];
+
+  const summaries: PublishSummary[] = [];
+
+  log.section('🚀 기존 Editorial 콘텐츠 공개 상태 반영');
+
+  for (const { contentType, model } of editorialModels) {
+    const result = await model.updateMany(
+      { status: { $ne: 'published' } },
+      {
+        $set: {
+          status: 'published',
+          publishedAt,
+        },
+      },
+    );
+
+    log.success(
+      `${contentType}: ${result.modifiedCount} published (${result.matchedCount} matched)`,
+    );
+
+    summaries.push({
+      contentType,
+      matchedCount: result.matchedCount,
+      modifiedCount: result.modifiedCount,
+    });
+  }
+
+  return summaries;
+}
+
 // ─── Main migration function (exported for testing) ───
 export async function runMigration(): Promise<MigrationSummary[]> {
   const allSummaries: MigrationSummary[] = [];
@@ -307,6 +354,8 @@ export async function runMigration(): Promise<MigrationSummary[]> {
 
   log.section('🏅 Badge 마이그레이션');
   await migrateBadges();
+
+  await publishExistingEditorialContent();
 
   return allSummaries;
 }
