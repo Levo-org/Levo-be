@@ -56,6 +56,14 @@ const toStringValue = (value: unknown): string => {
   return String(value).trim();
 };
 
+const toNumberValue = (value: unknown): number | undefined => {
+  if (value === null || value === undefined || value === '') return undefined;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+
+  const parsed = Number(toStringValue(value));
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
 const parseJsonArray = (value: unknown): { data?: unknown[]; error?: string } => {
   if (value === null || value === undefined || value === '') {
     return { data: [] };
@@ -154,6 +162,8 @@ const validateVocabularyRow = (
   const exampleSentence = toStringValue(raw.exampleSentence);
   const exampleTranslation = toStringValue(raw.exampleTranslation);
   const level = toStringValue(raw.level) || DEFAULT_LEVEL;
+  const chapter = toNumberValue(raw.chapter) ?? 1;
+  const order = toNumberValue(raw.order) ?? 0;
   const source = toStringValue(raw.source);
   const license = toStringValue(raw.license);
 
@@ -164,6 +174,12 @@ const validateVocabularyRow = (
   if (level && !isSupportedLevel(level)) {
     addError(errors, row.rowNumber, 'level', '지원하지 않는 레벨입니다.');
   }
+  if (!Number.isInteger(chapter) || chapter < 1) {
+    addError(errors, row.rowNumber, 'chapter', 'chapter는 1 이상의 정수여야 합니다.');
+  }
+  if (!Number.isInteger(order) || order < 0) {
+    addError(errors, row.rowNumber, 'order', 'order는 0 이상의 정수여야 합니다.');
+  }
 
   const data = {
     targetLanguage,
@@ -172,11 +188,11 @@ const validateVocabularyRow = (
     pronunciation,
     partOfSpeech,
     level,
-    chapter: 1,
+    chapter,
     exampleSentence,
     exampleTranslation,
     audioUrl: '',
-    order: 0,
+    order,
     sourceReference: source || undefined,
     license: license || undefined,
   };
