@@ -61,6 +61,11 @@ router.get(
  *           type: string
  *           enum: [beginner, elementary, intermediate, advanced]
  *       - in: query
+ *         name: chapter
+ *         description: vocabulary 콘텐츠에만 적용되는 챕터 필터
+ *         schema:
+ *           type: number
+ *       - in: query
  *         name: topic
  *         schema:
  *           type: string

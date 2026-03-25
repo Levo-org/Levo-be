@@ -104,7 +104,7 @@ export class AdminContentController {
       const skip = (page - 1) * limit;
 
       const filter: Record<string, unknown> = {};
-      const { status, targetLanguage, level, topic, search } = req.query;
+      const { status, targetLanguage, level, topic, search, chapter } = req.query;
 
       if (status) {
         if (!(CONTENT_STATUSES as readonly string[]).includes(status as string)) {
@@ -133,6 +133,19 @@ export class AdminContentController {
 
       if (topic) {
         filter.topic = topic;
+      }
+
+      if (chapter !== undefined) {
+        if (contentType !== 'vocabulary') {
+          throw ApiError.badRequest('chapter 필터는 vocabulary 콘텐츠에만 사용할 수 있습니다.');
+        }
+
+        const parsedChapter = parseInt(chapter as string, 10);
+        if (!Number.isInteger(parsedChapter) || parsedChapter < 1) {
+          throw ApiError.badRequest(`유효하지 않은 chapter입니다: ${chapter}`);
+        }
+
+        filter.chapter = parsedChapter;
       }
 
       if (search) {
