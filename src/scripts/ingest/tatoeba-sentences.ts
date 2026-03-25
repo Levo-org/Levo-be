@@ -5,6 +5,7 @@ import { connectDatabase } from '@/config/database';
 import ExampleSentence from '@/models/ExampleSentence';
 import ImportBatch from '@/models/ImportBatch';
 import { assignQuartileLevels } from '@/scripts/ingest/shared/difficulty';
+import { normalizeText } from '@/utils/normalizeText';
 
 interface TatoebaRow {
   sentenceId: string;
@@ -183,6 +184,7 @@ export async function runTatoebaSentenceIngestion(
           level,
           originalText: item.text,
           translation: '',
+          normalizedKey: normalizeText(item.text),
           tags: [],
           sourceType: 'dataset_import',
           sourceDataset: 'tatoeba-cc0',
