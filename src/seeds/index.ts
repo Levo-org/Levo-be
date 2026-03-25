@@ -52,8 +52,16 @@ import { lessonsZhData } from './data/lessons.zh';
 import { badgesData } from './data/badges';
 
 // ─── Helpers ──────────────────────────────────────────
-const addTargetLanguage = <T extends Record<string, any>>(items: T[], lang: string) =>
+const addTargetLanguage = <T extends Record<string, unknown>>(items: T[], lang: string) =>
   items.map((item) => ({ ...item, targetLanguage: lang }));
+
+const addPublishedEditorialMetadata = <T extends Record<string, unknown>>(items: T[]) =>
+  items.map((item) => ({
+    ...item,
+    status: 'published' as const,
+    sourceType: 'seed_import' as const,
+    publishedAt: new Date(),
+  }));
 
 const log = {
   section: (title: string) => console.log(`\n${'═'.repeat(50)}\n  ${title}\n${'═'.repeat(50)}`),
@@ -87,9 +95,9 @@ async function cleanCollections(): Promise<void> {
 async function seedVocabulary(): Promise<void> {
   log.section('📖 Vocabulary 시드 데이터');
 
-  const enData = addTargetLanguage(englishVocabulary, 'en');
-  const jaData = addTargetLanguage(japaneseVocabulary, 'ja');
-  const zhData = addTargetLanguage(chineseVocabulary, 'zh');
+  const enData = addPublishedEditorialMetadata(addTargetLanguage(englishVocabulary, 'en'));
+  const jaData = addPublishedEditorialMetadata(addTargetLanguage(japaneseVocabulary, 'ja'));
+  const zhData = addPublishedEditorialMetadata(addTargetLanguage(chineseVocabulary, 'zh'));
 
   const enResult = await Vocabulary.insertMany(enData);
   log.success(`영어 단어: ${enResult.length}개`);
@@ -105,9 +113,9 @@ async function seedVocabulary(): Promise<void> {
 async function seedGrammar(): Promise<void> {
   log.section('📝 Grammar 시드 데이터');
 
-  const enData = addTargetLanguage(englishGrammar, 'en');
-  const jaData = addTargetLanguage(japaneseGrammar, 'ja');
-  const zhData = addTargetLanguage(chineseGrammar, 'zh');
+  const enData = addPublishedEditorialMetadata(addTargetLanguage(englishGrammar, 'en'));
+  const jaData = addPublishedEditorialMetadata(addTargetLanguage(japaneseGrammar, 'ja'));
+  const zhData = addPublishedEditorialMetadata(addTargetLanguage(chineseGrammar, 'zh'));
 
   const enResult = await Grammar.insertMany(enData);
   log.success(`영어 문법: ${enResult.length}개`);
@@ -123,9 +131,9 @@ async function seedGrammar(): Promise<void> {
 async function seedConversation(): Promise<void> {
   log.section('💬 Conversation 시드 데이터');
 
-  const enData = addTargetLanguage(englishConversations, 'en');
-  const jaData = addTargetLanguage(japaneseConversations, 'ja');
-  const zhData = addTargetLanguage(chineseConversations, 'zh');
+  const enData = addPublishedEditorialMetadata(addTargetLanguage(englishConversations, 'en'));
+  const jaData = addPublishedEditorialMetadata(addTargetLanguage(japaneseConversations, 'ja'));
+  const zhData = addPublishedEditorialMetadata(addTargetLanguage(chineseConversations, 'zh'));
 
   const enResult = await Conversation.insertMany(enData);
   log.success(`영어 회화: ${enResult.length}개`);
@@ -141,9 +149,9 @@ async function seedConversation(): Promise<void> {
 async function seedListening(): Promise<void> {
   log.section('🎧 Listening 시드 데이터');
 
-  const enData = addTargetLanguage(listeningEnData, 'en');
-  const jaData = addTargetLanguage(listeningJaData, 'ja');
-  const zhData = addTargetLanguage(listeningZhData, 'zh');
+  const enData = addPublishedEditorialMetadata(addTargetLanguage(listeningEnData, 'en'));
+  const jaData = addPublishedEditorialMetadata(addTargetLanguage(listeningJaData, 'ja'));
+  const zhData = addPublishedEditorialMetadata(addTargetLanguage(listeningZhData, 'zh'));
 
   const enResult = await Listening.insertMany(enData);
   log.success(`영어 듣기: ${enResult.length}개`);
@@ -159,9 +167,9 @@ async function seedListening(): Promise<void> {
 async function seedReading(): Promise<void> {
   log.section('📰 Reading 시드 데이터');
 
-  const enData = addTargetLanguage(readingEnData, 'en');
-  const jaData = addTargetLanguage(readingJaData, 'ja');
-  const zhData = addTargetLanguage(readingZhData, 'zh');
+  const enData = addPublishedEditorialMetadata(addTargetLanguage(readingEnData, 'en'));
+  const jaData = addPublishedEditorialMetadata(addTargetLanguage(readingJaData, 'ja'));
+  const zhData = addPublishedEditorialMetadata(addTargetLanguage(readingZhData, 'zh'));
 
   const enResult = await Reading.insertMany(enData);
   log.success(`영어 읽기: ${enResult.length}개`);
