@@ -75,14 +75,14 @@ export class ReadingController {
     try {
       const userId = req.user._id;
       const readingId = req.params.id;
-      const { quizIndex } = req.body;
+      const quizIndex = Number(req.body.quizIndex);
       const selectedAnswer = req.body.selectedAnswer ?? req.body.answer;
       const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
 
       const reading = await Reading.findById(readingId);
       if (!reading) throw ApiError.notFound('읽기 지문을 찾을 수 없습니다.');
 
-      if (!reading.quizzes[quizIndex]) {
+      if (!Number.isInteger(quizIndex) || quizIndex < 0 || quizIndex >= reading.quizzes.length) {
         throw ApiError.badRequest('유효하지 않은 퀴즈 인덱스입니다.');
       }
 
@@ -92,6 +92,54 @@ export class ReadingController {
       let userProgress = await UserProgress.findOne({ userId, targetLanguage });
       if (!userProgress) {
         userProgress = await UserProgress.create({ userId, targetLanguage });
+      }
+
+      const readingStatusIndex = userProgress.readingStatus.findIndex(
+        (entry) => entry.readingId.toString() === readingId,
+      );
+
+      const totalQuizzes = Math.max(1, reading.quizzes.length);
+
+      if (readingStatusIndex >= 0) {
+        const entry = userProgress.readingStatus[readingStatusIndex];
+        const solvedSet = new Set(entry.solvedQuizIndexes || []);
+        const wrongSet = new Set(entry.wrongQuizIndexes || []);
+
+        if (correct) {
+          solvedSet.add(quizIndex);
+          wrongSet.delete(quizIndex);
+          entry.correctCount = (entry.correctCount || 0) + 1;
+        } else {
+          if (!solvedSet.has(quizIndex)) {
+            wrongSet.add(quizIndex);
+          }
+          entry.wrongCount = (entry.wrongCount || 0) + 1;
+        }
+
+        const solvedIndexes = Array.from(solvedSet).sort((a, b) => a - b);
+        const wrongIndexes = Array.from(wrongSet).sort((a, b) => a - b);
+        const solvedCount = solvedIndexes.filter((idx) => idx >= 0 && idx < totalQuizzes).length;
+
+        entry.solvedQuizIndexes = solvedIndexes;
+        entry.wrongQuizIndexes = wrongIndexes;
+        entry.progress = Math.min(100, Math.round((solvedCount / totalQuizzes) * 100));
+        entry.masteryState = entry.progress >= 100 ? 'completed' : solvedCount > 0 ? 'learning' : correct ? 'learning' : 'wrong';
+        entry.lastReviewedAt = new Date();
+      } else {
+        const solvedQuizIndexes = correct ? [quizIndex] : [];
+        const wrongQuizIndexes = correct ? [] : [quizIndex];
+        const solvedCount = solvedQuizIndexes.length;
+
+        userProgress.readingStatus.push({
+          readingId,
+          solvedQuizIndexes,
+          wrongQuizIndexes,
+          progress: Math.min(100, Math.round((solvedCount / totalQuizzes) * 100)),
+          masteryState: correct ? (solvedCount >= totalQuizzes ? 'completed' : 'learning') : 'wrong',
+          correctCount: correct ? 1 : 0,
+          wrongCount: correct ? 0 : 1,
+          lastReviewedAt: new Date(),
+        });
       }
 
       if (!correct) {
@@ -115,6 +163,8 @@ export class ReadingController {
           userAnswer: String(selectedAnswer),
         });
       }
+
+      await userProgress.save();
 
       // XP 지급 (정답인 경우)
       if (correct) {

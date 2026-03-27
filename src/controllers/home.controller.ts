@@ -105,14 +105,20 @@ export class HomeController {
         Grammar.find({ targetLanguage, level: effectiveLevel, status: 'published' }).select('_id').lean(),
         Conversation.find({ targetLanguage, level: effectiveLevel, status: 'published' }).select('_id').lean(),
         Listening.find({ targetLanguage, difficulty: effectiveLevel, status: 'published' }).select('_id').lean(),
-        Reading.find({ targetLanguage, difficulty: effectiveLevel, status: 'published' }).select('_id').lean(),
+        Reading.find({ targetLanguage, difficulty: effectiveLevel, status: 'published' }).select('_id quizzes').lean(),
       ]);
 
       const vocabularyIdSet = new Set(vocabularyDocs.map((item: any) => item._id.toString()));
       const grammarIdSet = new Set(grammarDocs.map((item: any) => item._id.toString()));
       const conversationIdSet = new Set(conversationDocs.map((item: any) => item._id.toString()));
       const listeningIds = listeningDocs.map((item: any) => item._id);
-      const readingIds = readingDocs.map((item: any) => item._id);
+      const readingQuizCountMap = new Map(
+        readingDocs.map((item: any) => [item._id.toString(), (item.quizzes || []).length]),
+      );
+      const readingTotalQuestions = readingDocs.reduce(
+        (sum: number, item: any) => sum + ((item.quizzes || []).length || 0),
+        0,
+      );
 
       const vocabularyCompleted = (progress?.vocabularyStatus || []).filter(
         (entry: any) => entry.status === 'completed' && vocabularyIdSet.has(entry.wordId.toString()),
@@ -124,7 +130,7 @@ export class HomeController {
         (entry: any) => entry.completed && conversationIdSet.has(entry.conversationId.toString()),
       ).length;
 
-      const [listeningCompleted, readingCompleted] = await Promise.all([
+      const listeningCompleted = await (
         listeningIds.length > 0
           ? UserItemProgress.countDocuments({
               userId,
@@ -133,17 +139,18 @@ export class HomeController {
               contentId: { $in: listeningIds },
               masteryState: 'completed',
             })
-          : 0,
-        readingIds.length > 0
-          ? UserItemProgress.countDocuments({
-              userId,
-              targetLanguage,
-              contentType: 'reading',
-              contentId: { $in: readingIds },
-              masteryState: 'completed',
-            })
-          : 0,
-      ]);
+          : 0
+      );
+
+      const readingCompleted = (progress?.readingStatus || []).reduce((sum: number, entry: any) => {
+        const quizCount = readingQuizCountMap.get(entry.readingId.toString());
+        if (!quizCount || quizCount <= 0) return sum;
+
+        const solvedCount = (entry.solvedQuizIndexes || []).filter(
+          (idx: number) => Number.isInteger(idx) && idx >= 0 && idx < quizCount,
+        ).length;
+        return sum + solvedCount;
+      }, 0);
 
       const categories = [
         {
@@ -177,9 +184,9 @@ export class HomeController {
         {
           id: 'reading',
           label: '읽기',
-          total: readingDocs.length,
+          total: readingTotalQuestions,
           completed: readingCompleted,
-          progress: this.getPercent(readingCompleted, readingDocs.length),
+          progress: this.getPercent(readingCompleted, readingTotalQuestions),
         },
       ];
 

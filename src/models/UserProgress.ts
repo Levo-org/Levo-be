@@ -41,6 +41,18 @@ export interface IUserProgress extends Document {
     introducedByLessonId: mongoose.Types.ObjectId | null;
     lastPracticedInLessonId: mongoose.Types.ObjectId | null;
   }>;
+  readingStatus: Array<{
+    readingId: mongoose.Types.ObjectId;
+    solvedQuizIndexes: number[];
+    wrongQuizIndexes: number[];
+    progress: number;
+    masteryState: WordStatus;
+    correctCount: number;
+    wrongCount: number;
+    lastReviewedAt: Date | null;
+    introducedByLessonId: mongoose.Types.ObjectId | null;
+    lastPracticedInLessonId: mongoose.Types.ObjectId | null;
+  }>;
   wrongAnswers: Array<{
     type: 'vocabulary' | 'grammar' | 'listening' | 'reading' | 'quiz' | 'conversation';
     contentId: mongoose.Types.ObjectId;
@@ -111,6 +123,22 @@ const conversationStatusSchema = new Schema(
   INTERNAL_ONLY_TRANSFORM,
 );
 
+const readingStatusSchema = new Schema(
+  {
+    readingId: { type: Schema.Types.ObjectId, ref: 'Reading' },
+    solvedQuizIndexes: [{ type: Number }],
+    wrongQuizIndexes: [{ type: Number }],
+    progress: { type: Number, default: 0 },
+    masteryState: { type: String, enum: WORD_STATUS, default: 'new' },
+    correctCount: { type: Number, default: 0 },
+    wrongCount: { type: Number, default: 0 },
+    lastReviewedAt: { type: Date, default: null },
+    introducedByLessonId: { type: Schema.Types.ObjectId, ref: 'Lesson', default: null },
+    lastPracticedInLessonId: { type: Schema.Types.ObjectId, ref: 'Lesson', default: null },
+  },
+  INTERNAL_ONLY_TRANSFORM,
+);
+
 const userProgressSchema = new Schema<IUserProgress>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -120,6 +148,7 @@ const userProgressSchema = new Schema<IUserProgress>(
     vocabularyStatus: [vocabularyStatusSchema],
     grammarStatus: [grammarStatusSchema],
     conversationStatus: [conversationStatusSchema],
+    readingStatus: [readingStatusSchema],
     wrongAnswers: [
       {
         type: { type: String, enum: ['vocabulary', 'grammar', 'listening', 'reading', 'quiz', 'conversation'] },
