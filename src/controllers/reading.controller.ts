@@ -94,6 +94,10 @@ export class ReadingController {
         userProgress = await UserProgress.create({ userId, targetLanguage });
       }
 
+      if (!Array.isArray(userProgress.readingStatus)) {
+        userProgress.readingStatus = [];
+      }
+
       const readingStatusIndex = userProgress.readingStatus.findIndex(
         (entry) => entry.readingId.toString() === readingId,
       );
