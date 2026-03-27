@@ -179,41 +179,78 @@ export class VocabularyController {
         ? req.query.wordIds.split(',').map((id) => id.trim()).filter(Boolean)
         : [];
 
-      const filter: Record<string, any> = { targetLanguage, status: 'published' };
-      if (level) filter.level = level;
-      if (typeof chapter === 'number' && !Number.isNaN(chapter)) filter.chapter = chapter;
-      if (wordIds.length > 0) filter._id = { $in: wordIds };
+      const baseFilter: Record<string, any> = { targetLanguage, status: 'published' };
+      if (level) baseFilter.level = level;
 
       const userProgress = await UserProgress.findOne({
         userId,
         targetLanguage,
       });
 
-      const prioritizedWordIds = wordIds.length > 0
-        ? []
-        : includeWrong
+      const isChapterMode = typeof chapter === 'number' && !Number.isNaN(chapter);
+
+      if (wordIds.length > 0) {
+        const explicitCards = await Vocabulary.find({
+          ...baseFilter,
+          _id: { $in: wordIds },
+        });
+
+        const explicitCardMap = new Map(explicitCards.map((card) => [card._id.toString(), card.toObject()]));
+        const orderedCards = wordIds
+          .map((id) => explicitCardMap.get(id))
+          .filter((card): card is Record<string, any> => !!card)
+          .slice(0, limit);
+
+        const flashcards = orderedCards.map((vocab) => {
+          const status = userProgress?.vocabularyStatus.find(
+            (v) => v.wordId.toString() === vocab._id.toString(),
+          );
+          const normalizedStatus = status?.status === 'wrong' ? 'learning' : (status?.status || 'new');
+
+          return {
+            ...vocab,
+            isStudied: !!status && normalizedStatus !== 'new',
+            userStatus: {
+              ...(status || { status: 'new', correctCount: 0, wrongCount: 0 }),
+              status: normalizedStatus,
+            },
+          };
+        });
+
+        return ApiResponse.success(res, { flashcards, total: flashcards.length }, '플래시카드 조회 성공');
+      }
+
+      const carryOverWordIds = includeWrong && isChapterMode
         ? (userProgress?.vocabularyStatus || [])
-            .filter((entry) => entry.wrongCount > 0 && entry.status !== 'completed')
+            .filter((entry) => entry.status !== 'completed' && entry.wrongCount > 0)
             .sort((a, b) => b.wrongCount - a.wrongCount)
             .map((entry) => entry.wordId)
         : [];
 
-      const prioritizedCards = prioritizedWordIds.length > 0
+      const carryOverCards = carryOverWordIds.length > 0
         ? await Vocabulary.find({
-            ...filter,
-            _id: { $in: prioritizedWordIds },
-          }).limit(limit)
+            ...baseFilter,
+            chapter: { $lt: chapter },
+            _id: { $in: carryOverWordIds },
+          }).sort({ chapter: 1, order: 1 })
         : [];
 
-      const remainingLimit = Math.max(limit - prioritizedCards.length, 0);
-      const randomFilter = prioritizedWordIds.length > 0
-        ? { ...filter, _id: { $nin: prioritizedWordIds } }
-        : filter;
-      const randomCards = remainingLimit > 0
-        ? (await Vocabulary.find(randomFilter)).sort(() => Math.random() - 0.5).slice(0, remainingLimit).map((card) => card.toObject())
+      const carryOverCardObjects = carryOverCards.map((card) => card.toObject());
+      const carryOverIds = carryOverCardObjects.map((card) => card._id);
+
+      const chapterFilter: Record<string, any> = { ...baseFilter };
+      if (isChapterMode) chapterFilter.chapter = chapter;
+
+      const remainingLimit = Math.max(limit - carryOverCardObjects.length, 0);
+      if (carryOverIds.length > 0) {
+        chapterFilter._id = { $nin: carryOverIds };
+      }
+
+      const chapterCards = remainingLimit > 0
+        ? (await Vocabulary.find(chapterFilter)).sort(() => Math.random() - 0.5).slice(0, remainingLimit).map((card) => card.toObject())
         : [];
 
-      const cards = [...prioritizedCards.map((card) => card.toObject()), ...randomCards];
+      const cards = [...carryOverCardObjects, ...chapterCards].slice(0, limit);
 
       const flashcards = cards.map((vocab) => {
         const status = userProgress?.vocabularyStatus.find(
