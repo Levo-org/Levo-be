@@ -21,11 +21,14 @@ export function serializeListeningPractice(
     }
   }
 
+  const normalizedAudioText = (listening.audioText || '').trim();
+  const fallbackSpeechText = (listening.correctAnswer || '').trim();
+
   return {
     _id: listening._id.toString(),
     question: 'Choose what you heard.',
     options: Array.from(set),
-    ttsText: listening.audioText,
+    ttsText: normalizedAudioText || fallbackSpeechText,
     difficulty: listening.difficulty,
     audioUrl: null,
   };
