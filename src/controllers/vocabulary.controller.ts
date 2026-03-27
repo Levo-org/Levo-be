@@ -15,34 +15,64 @@ export class VocabularyController {
       const userId = req.user._id;
       const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
       const level = req.query.level as string | undefined;
+      const status = req.query.status as string | undefined;
+      const chapter = req.query.chapter ? parseInt(req.query.chapter as string, 10) : undefined;
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
+      const limit = parseInt(req.query.limit as string) || 100;
       const skip = (page - 1) * limit;
 
       const filter: Record<string, any> = { targetLanguage, status: 'published' };
       if (level) filter.level = level;
+      if (typeof chapter === 'number' && !Number.isNaN(chapter)) filter.chapter = chapter;
 
-      const [vocabularies, total] = await Promise.all([
-        Vocabulary.find(filter).sort({ order: 1 }).skip(skip).limit(limit),
-        Vocabulary.countDocuments(filter),
-      ]);
+      const vocabularies = await Vocabulary.find(filter).sort({ order: 1 });
 
       const userProgress = await UserProgress.findOne({
         userId,
         targetLanguage,
       });
 
-      const vocabWithStatus = vocabularies.map((vocab) => {
-        const status = userProgress?.vocabularyStatus.find(
+      const resolveStatus = (rawStatus: string | undefined) => (rawStatus === 'wrong' ? 'learning' : (rawStatus || 'new'));
+
+      const allWords = vocabularies.map((vocab) => {
+        const progressStatus = userProgress?.vocabularyStatus.find(
           (v) => v.wordId.toString() === vocab._id.toString(),
         );
+        const normalizedStatus = resolveStatus(progressStatus?.status);
+
         return {
           ...vocab.toObject(),
-          userStatus: status || { status: 'new', correctCount: 0, wrongCount: 0 },
+          userStatus: {
+            ...(progressStatus || { status: 'new', correctCount: 0, wrongCount: 0 }),
+            status: normalizedStatus,
+          },
         };
       });
 
-      return ApiResponse.paginated(res, vocabWithStatus, {
+      const filteredWords = status && status !== 'all'
+        ? allWords.filter((word) => {
+            const wordStatus = word.userStatus?.status || 'new';
+            if (status === 'learning') {
+              return wordStatus === 'learning';
+            }
+            return wordStatus === status;
+          })
+        : allWords;
+
+      const total = filteredWords.length;
+      const pagedWords = filteredWords.slice(skip, skip + limit);
+
+      const tabs = {
+        all: allWords.length,
+        learning: allWords.filter((word) => (word.userStatus?.status || 'new') === 'learning').length,
+        completed: allWords.filter((word) => (word.userStatus?.status || 'new') === 'completed').length,
+        wrong: allWords.filter((word) => (word.userStatus?.status || 'new') === 'wrong').length,
+      };
+
+      return ApiResponse.paginated(res, {
+        words: pagedWords,
+        tabs,
+      }, {
         page,
         limit,
         total,
@@ -59,32 +89,66 @@ export class VocabularyController {
       const userId = req.user._id;
       const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
       const level = req.query.level as string | undefined;
+      const chapter = req.query.chapter ? parseInt(req.query.chapter as string, 10) : undefined;
       const limit = parseInt(req.query.limit as string) || 20;
+      const includeWrong = req.query.includeWrong === 'true';
+      const wordIds = typeof req.query.wordIds === 'string'
+        ? req.query.wordIds.split(',').map((id) => id.trim()).filter(Boolean)
+        : [];
 
       const filter: Record<string, any> = { targetLanguage, status: 'published' };
       if (level) filter.level = level;
-
-      const vocabularies = await Vocabulary.find(filter).limit(limit);
-
-      // 셔플
-      const shuffled = vocabularies.sort(() => Math.random() - 0.5);
+      if (typeof chapter === 'number' && !Number.isNaN(chapter)) filter.chapter = chapter;
+      if (wordIds.length > 0) filter._id = { $in: wordIds };
 
       const userProgress = await UserProgress.findOne({
         userId,
         targetLanguage,
       });
 
-      const flashcards = shuffled.map((vocab) => {
+      const prioritizedWordIds = wordIds.length > 0
+        ? []
+        : includeWrong
+        ? (userProgress?.vocabularyStatus || [])
+            .filter((entry) => entry.wrongCount > 0 && entry.status !== 'completed')
+            .sort((a, b) => b.wrongCount - a.wrongCount)
+            .map((entry) => entry.wordId)
+        : [];
+
+      const prioritizedCards = prioritizedWordIds.length > 0
+        ? await Vocabulary.find({
+            ...filter,
+            _id: { $in: prioritizedWordIds },
+          }).limit(limit)
+        : [];
+
+      const remainingLimit = Math.max(limit - prioritizedCards.length, 0);
+      const randomFilter = prioritizedWordIds.length > 0
+        ? { ...filter, _id: { $nin: prioritizedWordIds } }
+        : filter;
+      const randomCards = remainingLimit > 0
+        ? (await Vocabulary.find(randomFilter)).sort(() => Math.random() - 0.5).slice(0, remainingLimit)
+        : [];
+
+      const cards = [...prioritizedCards.map((card) => card.toObject()), ...randomCards];
+
+      const flashcards = cards.map((vocab) => {
         const status = userProgress?.vocabularyStatus.find(
           (v) => v.wordId.toString() === vocab._id.toString(),
         );
+        const normalizedStatus = status?.status === 'wrong' ? 'learning' : (status?.status || 'new');
+
         return {
-          ...vocab.toObject(),
-          isStudied: !!status && status.status !== 'new',
+          ...vocab,
+          isStudied: !!status && normalizedStatus !== 'new',
+          userStatus: {
+            ...(status || { status: 'new', correctCount: 0, wrongCount: 0 }),
+            status: normalizedStatus,
+          },
         };
       });
 
-      return ApiResponse.success(res, { flashcards }, '플래시카드 조회 성공');
+      return ApiResponse.success(res, { flashcards, total: flashcards.length }, '플래시카드 조회 성공');
     } catch (err) {
       next(err);
     }
@@ -106,8 +170,9 @@ export class VocabularyController {
   submitAnswer = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user._id;
-      const { wordId, correct } = req.body;
-      const { targetLanguage } = req.query;
+      const wordId = (req.body.wordId as string) || req.params.id;
+      const correct = !!req.body.correct;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
 
       const vocabulary = await Vocabulary.findOne({ _id: wordId, status: 'published' });
       if (!vocabulary) throw ApiError.notFound('단어를 찾을 수 없습니다.');
@@ -129,10 +194,10 @@ export class VocabularyController {
           const nextReviewDate = new Date();
           nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[intervalIndex]);
           entry.nextReviewAt = nextReviewDate;
-          entry.status = entry.correctCount >= 3 ? 'completed' : 'learning';
+          entry.status = 'completed';
         } else {
           entry.wrongCount = (entry.wrongCount || 0) + 1;
-          entry.status = 'wrong';
+          entry.status = 'learning';
           const nextReviewDate = new Date();
           nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[0]);
           entry.nextReviewAt = nextReviewDate;
@@ -161,7 +226,7 @@ export class VocabularyController {
         nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[0]);
         userProgress.vocabularyStatus.push({
           wordId,
-          status: correct ? 'learning' : 'wrong',
+          status: correct ? 'completed' : 'learning',
           correctCount: correct ? 1 : 0,
           wrongCount: correct ? 0 : 1,
           lastReviewedAt: new Date(),
