@@ -21,6 +21,12 @@ const getKSTYesterday = () => {
 };
 
 export class StreakController {
+  private static resolveTargetLanguage = (req: Request): string => {
+    const queryLanguage = typeof req.query.targetLanguage === 'string' ? req.query.targetLanguage : '';
+    const userLanguage = typeof req.user?.activeLanguage === 'string' ? req.user.activeLanguage : '';
+    return queryLanguage || userLanguage || 'en';
+  };
+
   private static getRecentWeeklyRecord = (weeklyRecord: Array<{ date: string; completed: boolean; minutesStudied: number }> = []) => {
     const deduped = new Map<string, { date: string; completed: boolean; minutesStudied: number }>();
 
@@ -84,7 +90,7 @@ export class StreakController {
   getStatus = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user._id;
-      const targetLanguage = req.user.activeLanguage || req.query.targetLanguage;
+      const targetLanguage = StreakController.resolveTargetLanguage(req);
 
       let streak = await UserStreak.findOne({ userId, targetLanguage });
       if (!streak) {
@@ -119,7 +125,7 @@ export class StreakController {
   syncDailyGoalProgress = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user._id;
-      const targetLanguage = req.user.activeLanguage || req.query.targetLanguage;
+      const targetLanguage = StreakController.resolveTargetLanguage(req);
       const minutesStudied = Math.max(0, Number(req.body?.minutesStudied) || 0);
 
       const user = await User.findById(userId).select('settings.dailyGoalMinutes').lean();
@@ -182,7 +188,7 @@ export class StreakController {
   useShield = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user._id;
-      const targetLanguage = req.user.activeLanguage || req.query.targetLanguage;
+      const targetLanguage = StreakController.resolveTargetLanguage(req);
 
       const profile = await UserLanguageProfile.findOne({ userId, targetLanguage });
       if (!profile) throw ApiError.notFound('언어 프로필을 찾을 수 없습니다.');
