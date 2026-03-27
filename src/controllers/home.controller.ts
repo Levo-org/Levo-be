@@ -25,6 +25,12 @@ const getKSTDate = () => {
   return kst.toISOString().split('T')[0];
 };
 
+const getKSTYesterday = () => {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000 - 24 * 60 * 60 * 1000);
+  return kst.toISOString().split('T')[0];
+};
+
 export class HomeController {
   getPercent = (completed: number, total: number) => {
     if (total <= 0) return 0;
@@ -65,7 +71,23 @@ export class HomeController {
       }
 
       const today = getKSTDate();
-      const todayStudied = streak?.lastStudyDate === today;
+      const yesterday = getKSTYesterday();
+      let normalizedStreak = streak;
+      if (normalizedStreak?.lastStudyDate && normalizedStreak.lastStudyDate !== today && normalizedStreak.lastStudyDate !== yesterday) {
+        await UserStreak.updateOne(
+          { _id: normalizedStreak._id },
+          { $set: { currentStreak: 0 } },
+        );
+        normalizedStreak = {
+          ...normalizedStreak,
+          currentStreak: 0,
+        };
+      }
+
+      const todayStreakRecord = Array.isArray(normalizedStreak?.weeklyRecord)
+        ? normalizedStreak.weeklyRecord.find((entry: any) => entry?.date === today)
+        : null;
+      const todayStudied = normalizedStreak?.lastStudyDate === today || !!todayStreakRecord?.completed;
 
       const profileProgress = calculateProfileProgress(progress || null);
       const todaySummary = calculateTodaySummary(progress || null, todayStudied);
@@ -193,12 +215,12 @@ export class HomeController {
           max: 5,
           timeUntilRefill: null,
         },
-        streak: streak ? {
-          current: streak.currentStreak,
-          currentStreak: streak.currentStreak,
-          longestStreak: streak.longestStreak,
+        streak: normalizedStreak ? {
+          current: normalizedStreak.currentStreak,
+          currentStreak: normalizedStreak.currentStreak,
+          longestStreak: normalizedStreak.longestStreak,
           todayCompleted: todayStudied,
-          isInDanger: streak.isInDanger || false,
+          isInDanger: false,
         } : {
           current: 0,
           currentStreak: 0,
@@ -223,7 +245,7 @@ export class HomeController {
           nextLessonId: nextLesson?._id,
         },
         categories,
-        state: streak?.isInDanger ? 'streak-danger' : 'normal',
+        state: 'normal',
       }, '홈 화면 조회 성공');
     } catch (err) {
       next(err);

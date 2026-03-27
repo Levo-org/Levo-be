@@ -2,6 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 import UserStreak from '@/models/UserStreak';
 import UserLanguageProfile from '@/models/UserLanguageProfile';
+import User from '@/models/User';
 import { ApiResponse } from '@/utils/ApiResponse';
 import { ApiError } from '@/utils/ApiError';
 
@@ -20,6 +21,65 @@ const getKSTYesterday = () => {
 };
 
 export class StreakController {
+  private static getRecentWeeklyRecord = (weeklyRecord: Array<{ date: string; completed: boolean; minutesStudied: number }> = []) => {
+    const deduped = new Map<string, { date: string; completed: boolean; minutesStudied: number }>();
+
+    for (const entry of weeklyRecord) {
+      if (!entry?.date) continue;
+      deduped.set(entry.date, {
+        date: entry.date,
+        completed: !!entry.completed,
+        minutesStudied: Number(entry.minutesStudied) || 0,
+      });
+    }
+
+    return Array.from(deduped.values())
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-7);
+  };
+
+  private static normalizeStreakForToday = async (streak: any) => {
+    if (!streak) return;
+
+    const today = getKSTDate();
+    const yesterday = getKSTYesterday();
+
+    if (streak.lastStudyDate && streak.lastStudyDate !== today && streak.lastStudyDate !== yesterday) {
+      streak.currentStreak = 0;
+    }
+
+    streak.weeklyRecord = StreakController.getRecentWeeklyRecord(streak.weeklyRecord || []);
+    await streak.save();
+  };
+
+  private static upsertDailyWeeklyRecord = (
+    weeklyRecord: Array<{ date: string; completed: boolean; minutesStudied: number }>,
+    date: string,
+    completed: boolean,
+    minutesStudied: number,
+  ) => {
+    const map = new Map<string, { date: string; completed: boolean; minutesStudied: number }>();
+    for (const entry of weeklyRecord || []) {
+      if (!entry?.date) continue;
+      map.set(entry.date, {
+        date: entry.date,
+        completed: !!entry.completed,
+        minutesStudied: Number(entry.minutesStudied) || 0,
+      });
+    }
+
+    const existing = map.get(date);
+    map.set(date, {
+      date,
+      completed,
+      minutesStudied: Math.max(Number(minutesStudied) || 0, Number(existing?.minutesStudied) || 0),
+    });
+
+    return Array.from(map.values())
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-7);
+  };
+
   /** GET 스트릭 상태 조회 */
   getStatus = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -40,21 +100,7 @@ export class StreakController {
         });
       }
 
-      const today = getKSTDate();
-      const yesterday = getKSTYesterday();
-
-      // 스트릭 리셋 여부 확인: 마지막 학습일이 오늘도 어제도 아닌 경우
-      if (
-        streak.lastStudyDate &&
-        streak.lastStudyDate !== today &&
-        streak.lastStudyDate !== yesterday
-      ) {
-        // 쉴드가 없으면 스트릭 초기화
-        if (streak.streakShields <= 0) {
-          streak.currentStreak = 0;
-          await streak.save();
-        }
-      }
+      await StreakController.normalizeStreakForToday(streak);
 
       const profile = await UserLanguageProfile.findOne({ userId, targetLanguage });
 
@@ -65,6 +111,68 @@ export class StreakController {
         weeklyRecord: streak.weeklyRecord,
         streakShields: profile?.streakShields ?? 0,
       }, '스트릭 조회 성공');
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  syncDailyGoalProgress = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user._id;
+      const targetLanguage = req.user.activeLanguage || req.query.targetLanguage;
+      const minutesStudied = Math.max(0, Number(req.body?.minutesStudied) || 0);
+
+      const user = await User.findById(userId).select('settings.dailyGoalMinutes').lean();
+      if (!user) throw ApiError.notFound('사용자를 찾을 수 없습니다.');
+
+      const dailyGoalMinutes = Math.max(1, user.settings?.dailyGoalMinutes || 10);
+      const today = getKSTDate();
+      const yesterday = getKSTYesterday();
+      const todayCompleted = minutesStudied >= dailyGoalMinutes;
+
+      let streak = await UserStreak.findOne({ userId, targetLanguage });
+      if (!streak) {
+        streak = await UserStreak.create({
+          userId,
+          targetLanguage,
+          currentStreak: 0,
+          longestStreak: 0,
+          lastStudyDate: '',
+          weeklyRecord: [],
+          shieldUsedDates: [],
+        });
+      }
+
+      await StreakController.normalizeStreakForToday(streak);
+
+      const shouldIncrement = todayCompleted && streak.lastStudyDate !== today;
+      if (shouldIncrement) {
+        if (streak.lastStudyDate === yesterday) {
+          streak.currentStreak += 1;
+        } else {
+          streak.currentStreak = 1;
+        }
+
+        streak.longestStreak = Math.max(streak.longestStreak, streak.currentStreak);
+        streak.lastStudyDate = today;
+      }
+
+      streak.weeklyRecord = StreakController.upsertDailyWeeklyRecord(
+        streak.weeklyRecord || [],
+        today,
+        todayCompleted,
+        minutesStudied,
+      );
+
+      await streak.save();
+
+      return ApiResponse.success(res, {
+        currentStreak: streak.currentStreak,
+        longestStreak: streak.longestStreak,
+        todayCompleted,
+        dailyGoalMinutes,
+        minutesStudied,
+      }, '일일 목표 스트릭 동기화 성공');
     } catch (err) {
       next(err);
     }

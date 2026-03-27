@@ -8,7 +8,6 @@ import CoinTransaction from '@/models/CoinTransaction';
 import { XP_CONFIG, COIN_CONFIG } from '@/utils/constants';
 import { ApiResponse } from '@/utils/ApiResponse';
 import { ApiError } from '@/utils/ApiError';
-import { StreakController } from '@/controllers/streak.controller';
 
 export class LessonController {
   /** GET 레슨 맵 (유닛별 레슨 목록 + 잠금 상태) */
@@ -239,9 +238,6 @@ export class LessonController {
           balanceAfter: user.coins,
         });
       }
-
-      // 스트릭 기록
-      await StreakController.recordStudy(userId.toString(), targetLanguage);
 
       return ApiResponse.success(res, {
         xpEarned,

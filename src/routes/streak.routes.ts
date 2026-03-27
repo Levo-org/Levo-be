@@ -17,6 +17,7 @@ const controller = new StreakController();
  *         description: 스트릭 조회 성공
  */
 router.get('/', auth, controller.getStatus);
+router.post('/progress', auth, controller.syncDailyGoalProgress);
 
 /**
  * @swagger
