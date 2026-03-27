@@ -7,6 +7,7 @@ import importRoutes from '@/routes/admin/import.routes';
 import contentRoutes from '@/routes/admin/content.routes';
 import workflowRoutes from '@/routes/admin/workflow.routes';
 import opsRoutes from '@/routes/admin/ops.routes';
+import memberRoutes from '@/routes/admin/member.routes';
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.use('/import', importRoutes);
 router.use('/content', contentRoutes);
 router.use('/workflow', workflowRoutes);
 router.use('/ops', opsRoutes);
+router.use('/members', memberRoutes);
 
 export default router;
