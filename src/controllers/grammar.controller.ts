@@ -12,21 +12,48 @@ export class GrammarController {
   /** 문법 목록 조회 */
   getList = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const userId = req.user._id;
       const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
       const level = req.query.level as string | undefined;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const skip = (page - 1) * limit;
 
-      const filter: Record<string, any> = { targetLanguage, status: 'published' };
-      if (level) filter.level = level;
+      const baseFilter: Record<string, any> = { targetLanguage };
+      if (level) baseFilter.level = level;
 
-      const [grammars, total] = await Promise.all([
-        Grammar.find(filter).sort({ order: 1 }).skip(skip).limit(limit),
+      const publishedFilter = { ...baseFilter, status: 'published' };
+      const publishedCount = await Grammar.countDocuments(publishedFilter);
+      const filter = publishedCount > 0 ? publishedFilter : baseFilter;
+
+      const [grammars, total, userProgress] = await Promise.all([
+        Grammar.find(filter).sort({ order: 1 }).skip(skip).limit(limit).lean(),
         Grammar.countDocuments(filter),
+        UserProgress.findOne({ userId, targetLanguage }).lean(),
       ]);
 
-      return ApiResponse.paginated(res, grammars, {
+      const grammarStatusMap = new Map(
+        (userProgress?.grammarStatus || []).map((entry: any) => [entry.grammarId.toString(), entry]),
+      );
+
+      const topics = grammars.map((grammar: any) => {
+        const statusEntry = grammarStatusMap.get(grammar._id.toString());
+        const progress = statusEntry?.progress || 0;
+        const status = progress >= 100 || statusEntry?.masteryState === 'completed' ? 'completed' : progress > 0 ? 'learning' : 'learning';
+
+        return {
+          _id: grammar._id,
+          icon: grammar.icon,
+          title: grammar.title,
+          subtitle: grammar.subtitle,
+          level: grammar.level,
+          progress,
+          status,
+          locked: false,
+        };
+      });
+
+      return ApiResponse.paginated(res, topics, {
         page,
         limit,
         total,
@@ -40,10 +67,33 @@ export class GrammarController {
   /** 문법 상세 조회 */
   getDetail = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const grammar = await Grammar.findOne({ _id: req.params.id, status: 'published' });
+      const userId = req.user._id;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
+
+      let grammar = await Grammar.findOne({ _id: req.params.id, status: 'published' }).lean();
+      if (!grammar) {
+        grammar = await Grammar.findById(req.params.id).lean();
+      }
       if (!grammar) throw ApiError.notFound('문법을 찾을 수 없습니다.');
 
-      return ApiResponse.success(res, { grammar }, '문법 상세 조회 성공');
+      const userProgress = await UserProgress.findOne({ userId, targetLanguage }).lean();
+      const grammarStatus = userProgress?.grammarStatus?.find(
+        (entry: any) => entry.grammarId.toString() === grammar._id.toString(),
+      );
+
+      const detail = {
+        _id: grammar._id,
+        title: grammar.title,
+        level: grammar.level,
+        explanation: grammar.explanation,
+        formula: grammar.formula,
+        formulaDesc: grammar.formulaExample || '',
+        examples: grammar.examples || [],
+        keyPoints: [] as string[],
+        progress: grammarStatus?.progress || 0,
+      };
+
+      return ApiResponse.success(res, detail, '문법 상세 조회 성공');
     } catch (err) {
       next(err);
     }
@@ -55,18 +105,15 @@ export class GrammarController {
       const grammar = await Grammar.findById(req.params.id);
       if (!grammar) throw ApiError.notFound('문법을 찾을 수 없습니다.');
 
-      const quizQuestions = grammar.examples.map((example, index) => ({
-        index,
-        sentence: example.sentence,
-        translation: example.translation,
-        highlight: example.highlight,
+      const questions = (grammar.quizzes || []).map((quiz) => ({
+        question: quiz.question,
+        options: quiz.options,
+        correctIndex: quiz.correctAnswer,
       }));
 
       return ApiResponse.success(res, {
-        grammarId: grammar._id,
-        title: grammar.title,
-        quizzes: grammar.quizzes,
-        examples: quizQuestions,
+        topicTitle: grammar.title,
+        questions,
       }, '문법 퀴즈 조회 성공');
     } catch (err) {
       next(err);
@@ -77,11 +124,33 @@ export class GrammarController {
   submitQuizAnswer = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user._id;
-      const { grammarId, correct } = req.body;
+      const grammarId = (req.params.id || req.body.grammarId || '').toString();
+      const quizIndex = Number(req.body.quizIndex);
+      const selectedAnswer = Number(req.body.selectedAnswer);
       const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
 
       const grammar = await Grammar.findById(grammarId);
       if (!grammar) throw ApiError.notFound('문법을 찾을 수 없습니다.');
+
+      let correct = false;
+      let correctAnswer = -1;
+      let explanation = '';
+
+      if (typeof req.body.correct === 'boolean') {
+        correct = req.body.correct;
+      } else {
+        if (!Number.isInteger(quizIndex) || quizIndex < 0 || quizIndex >= grammar.quizzes.length) {
+          throw ApiError.badRequest('유효하지 않은 quizIndex입니다.');
+        }
+        if (!Number.isInteger(selectedAnswer)) {
+          throw ApiError.badRequest('유효하지 않은 selectedAnswer입니다.');
+        }
+
+        const quiz = grammar.quizzes[quizIndex];
+        correctAnswer = quiz.correctAnswer;
+        explanation = quiz.explanation || '';
+        correct = selectedAnswer === quiz.correctAnswer;
+      }
 
       let userProgress = await UserProgress.findOne({ userId, targetLanguage });
       if (!userProgress) {
@@ -176,6 +245,8 @@ export class GrammarController {
 
       return ApiResponse.success(res, {
         correct,
+        correctAnswer,
+        explanation,
         grammarStatus: userProgress.grammarStatus.find(
           (g) => g.grammarId.toString() === grammarId,
         ),
