@@ -4,6 +4,7 @@ import { ApiResponse } from '@/utils/ApiResponse';
 import { ApiError } from '@/utils/ApiError';
 import Listening from '@/models/Listening';
 import UserProgress from '@/models/UserProgress';
+import UserItemProgress from '@/models/UserItemProgress';
 import UserLanguageProfile from '@/models/UserLanguageProfile';
 import { XP_CONFIG } from '@/utils/constants';
 import { recordWrongAnswer } from '@/services/remediation.service';
@@ -104,7 +105,41 @@ export class ListeningController {
       const listening = await Listening.findOne({ _id: listeningId, status: 'published' });
       if (!listening) throw ApiError.notFound('듣기 문제를 찾을 수 없습니다.');
 
-      const correct = answer.trim().toLowerCase() === listening.correctAnswer.trim().toLowerCase();
+      const normalizedAnswer = String(answer || '').trim();
+      const correct = normalizedAnswer.toLowerCase() === listening.correctAnswer.trim().toLowerCase();
+
+      let itemProgress = await UserItemProgress.findOne({
+        userId,
+        targetLanguage,
+        contentType: 'listening',
+        contentId: listening._id,
+      });
+
+      if (!itemProgress) {
+        itemProgress = await UserItemProgress.create({
+          userId,
+          targetLanguage,
+          contentType: 'listening',
+          contentId: listening._id,
+          status: 'active',
+        });
+      }
+
+      itemProgress.attemptCount = (itemProgress.attemptCount || 0) + 1;
+      itemProgress.lastStudiedAt = new Date();
+      itemProgress.lastResult = correct ? 'correct' : 'wrong';
+
+      if (correct) {
+        itemProgress.correctCount = (itemProgress.correctCount || 0) + 1;
+        itemProgress.masteryState = 'completed';
+      } else {
+        itemProgress.wrongCount = (itemProgress.wrongCount || 0) + 1;
+        if (itemProgress.masteryState === 'new') {
+          itemProgress.masteryState = 'wrong';
+        }
+      }
+
+      await itemProgress.save();
 
       let userProgress = await UserProgress.findOne({ userId, targetLanguage });
       if (!userProgress) {
@@ -117,7 +152,7 @@ export class ListeningController {
           type: 'listening',
           contentId: listening._id,
           question: listening.audioText,
-          userAnswer: answer,
+          userAnswer: normalizedAnswer,
           correctAnswer: listening.correctAnswer,
           createdAt: new Date(),
         });
@@ -129,7 +164,7 @@ export class ListeningController {
           contentId: listening._id,
           question: listening.audioText,
           correctAnswer: listening.correctAnswer,
-          userAnswer: answer,
+          userAnswer: normalizedAnswer,
         });
       }
 
@@ -150,7 +185,7 @@ export class ListeningController {
       return ApiResponse.success(res, {
         correct,
         correctAnswer: listening.correctAnswer,
-        userAnswer: answer,
+        userAnswer: normalizedAnswer,
         xpEarned,
         heartsRemaining,
       }, correct ? '정답입니다!' : '오답입니다.');
