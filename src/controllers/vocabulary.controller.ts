@@ -9,6 +9,89 @@ import { REVIEW_INTERVALS_DAYS, XP_CONFIG } from '@/utils/constants';
 import { recordWrongAnswer } from '@/services/remediation.service';
 
 export class VocabularyController {
+  applyVocabularyAnswer = async (
+    userProgress: any,
+    vocabulary: any,
+    wordId: string,
+    correct: boolean,
+    userId: any,
+    targetLanguage: string,
+  ) => {
+    const statusIndex = userProgress.vocabularyStatus.findIndex(
+      (v: any) => v.wordId.toString() === wordId,
+    );
+
+    if (statusIndex >= 0) {
+      const entry = userProgress.vocabularyStatus[statusIndex];
+      if (correct) {
+        entry.correctCount = (entry.correctCount || 0) + 1;
+        const intervalIndex = Math.min(entry.correctCount - 1, REVIEW_INTERVALS_DAYS.length - 1);
+        const nextReviewDate = new Date();
+        nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[intervalIndex]);
+        entry.nextReviewAt = nextReviewDate;
+        entry.status = 'completed';
+      } else {
+        entry.wrongCount = (entry.wrongCount || 0) + 1;
+        entry.status = 'learning';
+        const nextReviewDate = new Date();
+        nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[0]);
+        entry.nextReviewAt = nextReviewDate;
+        userProgress.wrongAnswers.push({
+          type: 'vocabulary',
+          contentId: vocabulary._id,
+          question: vocabulary.word,
+          userAnswer: '',
+          correctAnswer: vocabulary.meaning,
+          createdAt: new Date(),
+        });
+        await recordWrongAnswer({
+          userId,
+          targetLanguage,
+          contentType: 'vocabulary',
+          contentId: vocabulary._id,
+          question: vocabulary.word,
+          correctAnswer: vocabulary.meaning,
+          userAnswer: '',
+        });
+      }
+      entry.lastReviewedAt = new Date();
+      return entry;
+    }
+
+    const nextReviewDate = new Date();
+    nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[0]);
+    userProgress.vocabularyStatus.push({
+      wordId,
+      status: correct ? 'completed' : 'learning',
+      correctCount: correct ? 1 : 0,
+      wrongCount: correct ? 0 : 1,
+      lastReviewedAt: new Date(),
+      nextReviewAt: nextReviewDate,
+    });
+
+    if (!correct) {
+      userProgress.wrongAnswers.push({
+        type: 'vocabulary',
+        contentId: vocabulary._id,
+        question: vocabulary.word,
+        userAnswer: '',
+        correctAnswer: vocabulary.meaning,
+        createdAt: new Date(),
+      });
+      await recordWrongAnswer({
+        userId,
+        targetLanguage,
+        contentType: 'vocabulary',
+        contentId: vocabulary._id,
+        question: vocabulary.word,
+        correctAnswer: vocabulary.meaning,
+        userAnswer: '',
+      });
+    }
+
+    return userProgress.vocabularyStatus[userProgress.vocabularyStatus.length - 1];
+  };
+
   /** 단어 목록 조회 */
   getList = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -184,77 +267,7 @@ export class VocabularyController {
         userProgress = await UserProgress.create({ userId, targetLanguage });
       }
 
-      const statusIndex = userProgress.vocabularyStatus.findIndex(
-        (v) => v.wordId.toString() === wordId,
-      );
-
-      if (statusIndex >= 0) {
-        const entry = userProgress.vocabularyStatus[statusIndex];
-        if (correct) {
-          entry.correctCount = (entry.correctCount || 0) + 1;
-          const intervalIndex = Math.min(entry.correctCount - 1, REVIEW_INTERVALS_DAYS.length - 1);
-          const nextReviewDate = new Date();
-          nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[intervalIndex]);
-          entry.nextReviewAt = nextReviewDate;
-          entry.status = 'completed';
-        } else {
-          entry.wrongCount = (entry.wrongCount || 0) + 1;
-          entry.status = 'learning';
-          const nextReviewDate = new Date();
-          nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[0]);
-          entry.nextReviewAt = nextReviewDate;
-          // TODO: legacy embedded wrongAnswers — remove after migration to WrongAnswerEntry collection
-          userProgress.wrongAnswers.push({
-            type: 'vocabulary',
-            contentId: vocabulary._id,
-            question: vocabulary.word,
-            userAnswer: '',
-            correctAnswer: vocabulary.meaning,
-            createdAt: new Date(),
-          });
-          await recordWrongAnswer({
-            userId,
-            targetLanguage,
-            contentType: 'vocabulary',
-            contentId: vocabulary._id,
-            question: vocabulary.word,
-            correctAnswer: vocabulary.meaning,
-            userAnswer: '',
-          });
-        }
-        entry.lastReviewedAt = new Date();
-      } else {
-        const nextReviewDate = new Date();
-        nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[0]);
-        userProgress.vocabularyStatus.push({
-          wordId,
-          status: correct ? 'completed' : 'learning',
-          correctCount: correct ? 1 : 0,
-          wrongCount: correct ? 0 : 1,
-          lastReviewedAt: new Date(),
-          nextReviewAt: nextReviewDate,
-        });
-        if (!correct) {
-          // TODO: legacy embedded wrongAnswers — remove after migration to WrongAnswerEntry collection
-          userProgress.wrongAnswers.push({
-            type: 'vocabulary',
-            contentId: vocabulary._id,
-            question: vocabulary.word,
-            userAnswer: '',
-            correctAnswer: vocabulary.meaning,
-            createdAt: new Date(),
-          });
-          await recordWrongAnswer({
-            userId,
-            targetLanguage,
-            contentType: 'vocabulary',
-            contentId: vocabulary._id,
-            question: vocabulary.word,
-            correctAnswer: vocabulary.meaning,
-            userAnswer: '',
-          });
-        }
-      }
+      await this.applyVocabularyAnswer(userProgress, vocabulary, wordId, correct, userId, targetLanguage);
 
       await userProgress.save();
 
@@ -272,6 +285,80 @@ export class VocabularyController {
           (v) => v.wordId.toString() === wordId,
         ),
       }, '답변 제출 완료');
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  submitBatchAnswers = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user._id;
+      const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
+      const answers = Array.isArray(req.body.answers) ? req.body.answers : [];
+
+      if (answers.length === 0) throw ApiError.badRequest('answers가 필요합니다.');
+
+      const normalizedAnswers = answers
+        .map((item) => ({
+          wordId: typeof item.wordId === 'string' ? item.wordId : '',
+          correct: !!item.correct,
+        }))
+        .filter((item) => !!item.wordId);
+
+      if (normalizedAnswers.length === 0) throw ApiError.badRequest('유효한 answers가 필요합니다.');
+
+      const uniqueWordIds = Array.from(new Set(normalizedAnswers.map((item) => item.wordId)));
+      const vocabularies = await Vocabulary.find({ _id: { $in: uniqueWordIds }, status: 'published' });
+      const vocabularyMap = new Map(vocabularies.map((vocabulary) => [vocabulary._id.toString(), vocabulary]));
+
+      const missingWordId = uniqueWordIds.find((id) => !vocabularyMap.has(id));
+      if (missingWordId) throw ApiError.notFound('단어를 찾을 수 없습니다.');
+
+      let userProgress = await UserProgress.findOne({ userId, targetLanguage });
+      if (!userProgress) {
+        userProgress = await UserProgress.create({ userId, targetLanguage });
+      }
+
+      let correctCount = 0;
+      const updatedStatuses: any[] = [];
+
+      for (const answer of normalizedAnswers) {
+        const vocabulary = vocabularyMap.get(answer.wordId);
+        if (!vocabulary) continue;
+
+        const updatedEntry = await this.applyVocabularyAnswer(
+          userProgress,
+          vocabulary,
+          answer.wordId,
+          answer.correct,
+          userId,
+          targetLanguage,
+        );
+
+        if (answer.correct) correctCount += 1;
+
+        updatedStatuses.push({
+          wordId: answer.wordId,
+          status: updatedEntry.status,
+          correctCount: updatedEntry.correctCount,
+          wrongCount: updatedEntry.wrongCount,
+        });
+      }
+
+      await userProgress.save();
+
+      if (correctCount > 0) {
+        await UserLanguageProfile.findOneAndUpdate(
+          { userId, targetLanguage },
+          { $inc: { xp: XP_CONFIG.QUIZ_CORRECT * correctCount } },
+        );
+      }
+
+      return ApiResponse.success(res, {
+        processed: normalizedAnswers.length,
+        correctCount,
+        updatedStatuses,
+      }, '플래시카드 답변 저장 완료');
     } catch (err) {
       next(err);
     }

@@ -62,6 +62,37 @@ router.get('/flashcards', auth, controller.getFlashcards);
 
 /**
  * @swagger
+ * /vocabulary/flashcards/answers:
+ *   post:
+ *     tags: [Vocabulary]
+ *     summary: 플래시카드 답변 일괄 저장
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [answers]
+ *             properties:
+ *               answers:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required: [wordId, correct]
+ *                   properties:
+ *                     wordId:
+ *                       type: string
+ *                     correct:
+ *                       type: boolean
+ *     responses:
+ *       200:
+ *         description: 플래시카드 답변 저장 성공
+ */
+router.post('/flashcards/answers', auth, controller.submitBatchAnswers);
+
+/**
+ * @swagger
  * /vocabulary/{id}:
  *   get:
  *     tags: [Vocabulary]
