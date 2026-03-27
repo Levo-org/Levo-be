@@ -23,6 +23,7 @@ const controller = new ListeningController();
  *         description: 듣기 문제 목록 조회 성공
  */
 router.get('/', auth, controller.getList);
+router.get('/practice', auth, controller.getPracticeList);
 
 /**
  * @swagger

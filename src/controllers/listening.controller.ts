@@ -10,6 +10,58 @@ import { recordWrongAnswer } from '@/services/remediation.service';
 import { serializeListeningPractice } from '@/services/listening/serializer';
 
 export class ListeningController {
+  private buildSerializedListenings = (
+    listenings: Array<{
+      _id: any;
+      audioText: string;
+      correctAnswer: string;
+      difficulty: string;
+    }>,
+    answerPool: string[],
+  ) => {
+    return listenings.map((item) => {
+      const distractors = answerPool
+        .filter((answer) => answer !== item.correctAnswer)
+        .sort((a, b) => a.localeCompare(b))
+        .slice(0, 3);
+
+      return serializeListeningPractice(
+        {
+          _id: item._id,
+          audioText: item.audioText,
+          correctAnswer: item.correctAnswer,
+          difficulty: item.difficulty,
+        },
+        distractors,
+      );
+    });
+  };
+
+  getPracticeList = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
+      const difficulty = req.query.difficulty as string | undefined;
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
+
+      const filter: Record<string, any> = { targetLanguage, status: 'published' };
+      if (difficulty) filter.difficulty = difficulty;
+
+      const [listenings, answerPool] = await Promise.all([
+        Listening.find(filter)
+          .sort({ order: 1 })
+          .limit(limit)
+          .select('_id audioText correctAnswer difficulty')
+          .lean(),
+        Listening.distinct('correctAnswer', filter),
+      ]);
+
+      const serialized = this.buildSerializedListenings(listenings, answerPool as string[]);
+      return ApiResponse.success(res, serialized, '듣기 연습 문제 조회 성공');
+    } catch (err) {
+      next(err);
+    }
+  };
+
   /** 듣기 연습 목록 조회 */
   getList = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -22,30 +74,13 @@ export class ListeningController {
       const filter: Record<string, any> = { targetLanguage, status: 'published' };
       if (difficulty) filter.difficulty = difficulty;
 
-      const [listenings, total] = await Promise.all([
+      const [listenings, total, answerPool] = await Promise.all([
         Listening.find(filter).sort({ order: 1 }).skip(skip).limit(limit),
         Listening.countDocuments(filter),
+        Listening.distinct('correctAnswer', filter),
       ]);
 
-      const sameBucket = await Listening.find(filter).sort({ order: 1 });
-      const bucketAnswers = sameBucket.map((item) => item.correctAnswer);
-
-      const serialized = listenings.map((item) => {
-        const distractors = bucketAnswers
-          .filter((answer) => answer !== item.correctAnswer)
-          .sort((a, b) => a.localeCompare(b))
-          .slice(0, 3);
-
-        return serializeListeningPractice(
-          {
-            _id: item._id,
-            audioText: item.audioText,
-            correctAnswer: item.correctAnswer,
-            difficulty: item.difficulty,
-          },
-          distractors,
-        );
-      });
+      const serialized = this.buildSerializedListenings(listenings, answerPool as string[]);
 
       return ApiResponse.paginated(res, serialized, {
         page,
