@@ -142,6 +142,68 @@ export class UserController {
     }
   };
 
+  updateLearningPreferences = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { targetLanguage, level } = req.body;
+      const supportedLanguages = ['en', 'ja', 'zh'];
+      const supportedLevels = ['beginner', 'elementary', 'intermediate', 'advanced'];
+
+      if (!supportedLanguages.includes(targetLanguage)) {
+        throw ApiError.badRequest('지원하지 않는 언어입니다. (en, ja, zh)');
+      }
+
+      if (!supportedLevels.includes(level)) {
+        throw ApiError.badRequest('지원하지 않는 난이도입니다. (beginner, elementary, intermediate, advanced)');
+      }
+
+      const user = await User.findById(req.user._id);
+      if (!user) throw ApiError.notFound('사용자를 찾을 수 없습니다.');
+
+      user.activeLanguage = targetLanguage;
+      await user.save();
+
+      const languageProfile = await UserLanguageProfile.findOneAndUpdate(
+        { userId: req.user._id, targetLanguage },
+        {
+          $set: { level },
+          $setOnInsert: {
+            userId: req.user._id,
+            targetLanguage,
+            xp: 0,
+            userLevel: 1,
+            hearts: 5,
+            vocabularyProgress: 0,
+            grammarProgress: 0,
+            conversationProgress: 0,
+            listeningProgress: 0,
+            readingProgress: 0,
+            quizProgress: 0,
+          },
+        },
+        { upsert: true, new: true },
+      );
+
+      await UserStreak.findOneAndUpdate(
+        { userId: req.user._id, targetLanguage },
+        { $setOnInsert: { userId: req.user._id, targetLanguage } },
+        { upsert: true, new: true },
+      );
+
+      await UserProgress.findOneAndUpdate(
+        { userId: req.user._id, targetLanguage },
+        { $setOnInsert: { userId: req.user._id, targetLanguage } },
+        { upsert: true, new: true },
+      );
+
+      return ApiResponse.success(res, {
+        user,
+        languageProfile,
+      }, '학습 언어/난이도 변경 완료');
+    } catch (err) {
+      next(err);
+    }
+  };
+
   /** 온보딩 완료 */
   completeOnboarding = async (req: Request, res: Response, next: NextFunction) => {
     try {

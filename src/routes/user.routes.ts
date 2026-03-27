@@ -94,6 +94,7 @@ router.patch('/me/settings', auth, controller.updateSettings);
  *         description: 언어 변경 성공 (새 프로필 자동 생성 포함)
  */
 router.patch('/me/language', auth, controller.changeLanguage);
+router.patch('/me/learning', auth, controller.updateLearningPreferences);
 
 /**
  * @swagger
