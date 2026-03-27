@@ -164,9 +164,22 @@ export class GrammarController {
       if (statusIndex >= 0) {
         const entry = userProgress.grammarStatus[statusIndex];
         if (correct) {
-          entry.quizScore += 1;
+          const canTrackQuizIndex = Number.isInteger(quizIndex) && quizIndex >= 0;
+          if (canTrackQuizIndex) {
+            const solvedSet = new Set(entry.solvedQuizIndexes || []);
+            solvedSet.add(quizIndex);
+            const solvedIndexes = Array.from(solvedSet).sort((a, b) => a - b);
+            entry.solvedQuizIndexes = solvedIndexes;
+            entry.quizScore = solvedIndexes.length;
+
+            const totalQuizzes = Math.max(1, grammar.quizzes.length || 1);
+            entry.progress = Math.min(100, Math.round((solvedIndexes.length / totalQuizzes) * 100));
+          } else {
+            entry.quizScore += 1;
+            entry.progress = Math.min(entry.progress + 25, 100);
+          }
+
           entry.correctCount = (entry.correctCount || 0) + 1;
-          entry.progress = Math.min(entry.progress + 25, 100);
           const intervalIndex = Math.min(entry.correctCount - 1, REVIEW_INTERVALS_DAYS.length - 1);
           const nextReviewDate = new Date();
           nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[intervalIndex]);
@@ -203,8 +216,13 @@ export class GrammarController {
         nextReviewDate.setDate(nextReviewDate.getDate() + REVIEW_INTERVALS_DAYS[0]);
         userProgress.grammarStatus.push({
           grammarId,
-          progress: correct ? 25 : 0,
+          progress: correct
+            ? (Number.isInteger(quizIndex) && quizIndex >= 0
+              ? Math.min(100, Math.round((1 / Math.max(1, grammar.quizzes.length || 1)) * 100))
+              : 25)
+            : 0,
           quizScore: correct ? 1 : 0,
+          solvedQuizIndexes: correct && Number.isInteger(quizIndex) && quizIndex >= 0 ? [quizIndex] : [],
           lastReviewedAt: new Date(),
           nextReviewAt: nextReviewDate,
           masteryState: correct ? 'learning' : 'wrong',

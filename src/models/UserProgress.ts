@@ -20,6 +20,7 @@ export interface IUserProgress extends Document {
     grammarId: mongoose.Types.ObjectId;
     progress: number;
     quizScore: number;
+    solvedQuizIndexes: number[];
     lastReviewedAt: Date | null;
     nextReviewAt: Date | null;
     masteryState: WordStatus;
@@ -82,6 +83,7 @@ const grammarStatusSchema = new Schema(
     grammarId: { type: Schema.Types.ObjectId, ref: 'Grammar' },
     progress: { type: Number, default: 0 },
     quizScore: { type: Number, default: 0 },
+    solvedQuizIndexes: [{ type: Number }],
     lastReviewedAt: { type: Date, default: null },
     nextReviewAt: { type: Date, default: null },
     masteryState: { type: String, enum: WORD_STATUS, default: 'new' },
