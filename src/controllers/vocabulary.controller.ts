@@ -127,7 +127,7 @@ export class VocabularyController {
         ? { ...filter, _id: { $nin: prioritizedWordIds } }
         : filter;
       const randomCards = remainingLimit > 0
-        ? (await Vocabulary.find(randomFilter)).sort(() => Math.random() - 0.5).slice(0, remainingLimit)
+        ? (await Vocabulary.find(randomFilter)).sort(() => Math.random() - 0.5).slice(0, remainingLimit).map((card) => card.toObject())
         : [];
 
       const cards = [...prioritizedCards.map((card) => card.toObject()), ...randomCards];
@@ -173,6 +173,8 @@ export class VocabularyController {
       const wordId = (req.body.wordId as string) || req.params.id;
       const correct = !!req.body.correct;
       const targetLanguage = (req.query.targetLanguage as string) || req.user?.activeLanguage || 'en';
+
+      if (!wordId) throw ApiError.badRequest('wordId가 필요합니다.');
 
       const vocabulary = await Vocabulary.findOne({ _id: wordId, status: 'published' });
       if (!vocabulary) throw ApiError.notFound('단어를 찾을 수 없습니다.');
