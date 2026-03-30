@@ -14,6 +14,7 @@ export interface IUserItemProgress extends Document {
   attemptCount: number;
   correctCount: number;
   wrongCount: number;
+  reviewExposureCount: number;
   lastStudiedAt: Date | null;
   lastResult: (typeof ITEM_PROGRESS_RESULTS)[number] | null;
   nextReviewAt: Date | null;
@@ -44,6 +45,7 @@ const userItemProgressSchema = new Schema<IUserItemProgress>(
     attemptCount: { type: Number, default: 0, min: 0, required: true },
     correctCount: { type: Number, default: 0, min: 0, required: true },
     wrongCount: { type: Number, default: 0, min: 0, required: true },
+    reviewExposureCount: { type: Number, default: 0, min: 0, required: true },
     lastStudiedAt: { type: Date, default: null },
     lastResult: { type: String, enum: ITEM_PROGRESS_RESULTS, default: null },
     nextReviewAt: { type: Date, default: null },
