@@ -100,7 +100,7 @@ export class StreakController {
           currentStreak: 0,
           longestStreak: 0,
           lastStudyDate: null,
-          weeklyRecord: {},
+          weeklyRecord: [],
           streakShields: 0,
           shieldUsedDates: [],
         });
@@ -228,7 +228,7 @@ export class StreakController {
         currentStreak: 0,
         longestStreak: 0,
         lastStudyDate: null,
-        weeklyRecord: {},
+        weeklyRecord: [],
         streakShields: 0,
         shieldUsedDates: [],
       });
@@ -244,13 +244,12 @@ export class StreakController {
       streak.lastStudyDate = today;
     }
 
-    // 주간 기록 업데이트 (요일 키: 0=일 ~ 6=토)
-    const now = new Date();
-    const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-    const dayOfWeek = kstNow.getDay().toString();
-
-    if (!streak.weeklyRecord) streak.weeklyRecord = {};
-    streak.weeklyRecord[dayOfWeek] = true;
+    streak.weeklyRecord = StreakController.upsertDailyWeeklyRecord(
+      streak.weeklyRecord || [],
+      today,
+      false,
+      0,
+    );
 
     await streak.save();
   };
