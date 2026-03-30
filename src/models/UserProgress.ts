@@ -11,6 +11,7 @@ export interface IUserProgress extends Document {
     status: WordStatus;
     correctCount: number;
     wrongCount: number;
+    reviewExposureCount: number;
     lastReviewedAt: Date | null;
     nextReviewAt: Date | null;
     introducedByLessonId: mongoose.Types.ObjectId | null;
@@ -26,6 +27,7 @@ export interface IUserProgress extends Document {
     masteryState: WordStatus;
     correctCount: number;
     wrongCount: number;
+    reviewExposureCount: number;
     introducedByLessonId: mongoose.Types.ObjectId | null;
     lastPracticedInLessonId: mongoose.Types.ObjectId | null;
   }>;
@@ -37,6 +39,7 @@ export interface IUserProgress extends Document {
     masteryState: WordStatus;
     correctCount: number;
     wrongCount: number;
+    reviewExposureCount: number;
     nextReviewAt: Date | null;
     introducedByLessonId: mongoose.Types.ObjectId | null;
     lastPracticedInLessonId: mongoose.Types.ObjectId | null;
@@ -82,6 +85,7 @@ const vocabularyStatusSchema = new Schema(
     status: { type: String, enum: WORD_STATUS, default: 'new' },
     correctCount: { type: Number, default: 0 },
     wrongCount: { type: Number, default: 0 },
+    reviewExposureCount: { type: Number, default: 0 },
     lastReviewedAt: { type: Date, default: null },
     nextReviewAt: { type: Date, default: null },
     introducedByLessonId: { type: Schema.Types.ObjectId, ref: 'Lesson', default: null },
@@ -101,6 +105,7 @@ const grammarStatusSchema = new Schema(
     masteryState: { type: String, enum: WORD_STATUS, default: 'new' },
     correctCount: { type: Number, default: 0 },
     wrongCount: { type: Number, default: 0 },
+    reviewExposureCount: { type: Number, default: 0 },
     introducedByLessonId: { type: Schema.Types.ObjectId, ref: 'Lesson', default: null },
     lastPracticedInLessonId: { type: Schema.Types.ObjectId, ref: 'Lesson', default: null },
   },
@@ -116,6 +121,7 @@ const conversationStatusSchema = new Schema(
     masteryState: { type: String, enum: WORD_STATUS, default: 'new' },
     correctCount: { type: Number, default: 0 },
     wrongCount: { type: Number, default: 0 },
+    reviewExposureCount: { type: Number, default: 0 },
     nextReviewAt: { type: Date, default: null },
     introducedByLessonId: { type: Schema.Types.ObjectId, ref: 'Lesson', default: null },
     lastPracticedInLessonId: { type: Schema.Types.ObjectId, ref: 'Lesson', default: null },
