@@ -7,7 +7,7 @@
 // ============================================================
 export const listeningJaData = [
   // ═══════════════════════════════════════════════════
-  // BEGINNER  (JLPT N5 level)  — items 1-10
+  // BEGINNER  (JLPT N5 level)  — items 1-30
   // Short classroom / street dialogues in hiragana
   // ═══════════════════════════════════════════════════
   {
@@ -30,7 +30,7 @@ export const listeningJaData = [
   },
   {
     audioText:
-      'Ａ：すみません。あおやまさん、いまなんじですか。\nあおやま：えっと、いま３じですよ。\nＡ：きょうのかいぎはなんじからですか。\nあおやま：３じはんからです。',
+      'Ａ：すみません。あおやまさん、いまなんじですか。\nあおやま：えっと、いま３じですよ。\nＡ：きょうのかいぎはなんじからですか。\nあおやま：３じはんからです. ',
     correctAnswer: '３じはん',
     hint: '회의가 몇 시에 시작하는지 들어보세요. 현재 시간은 3시예요.',
     difficulty: 'beginner',
@@ -39,7 +39,7 @@ export const listeningJaData = [
   },
   {
     audioText:
-      'せいと：せんせい、このほんは いくらですか。\nせんせい：これは ３,０４０えんです。\nせいと：そうですか。このカードは いくらですか。\nせんせい：え～、これは みっつ、１００えんです。\nせいと：じゃ、これと これをください。\nせんせい：え～、３,１４０えんです。',
+      'せいと：せんせい、このほんは いくらですか。\nせんせい：これは ３,０４０えんです。\nせいと：そうですか. このカードは いくらですか。\nせんせい：え～、これは みっつ、１００えんです。\nせいと：じゃ、これと これをください。\nせんせい：え～、３,１４０えんです。',
     correctAnswer: '３,１４０えん',
     hint: '책과 카드를 합쳐서 얼마인지 들어보세요.',
     difficulty: 'beginner',
@@ -100,9 +100,169 @@ export const listeningJaData = [
     audioUrl: '',
     order: 10,
   },
+  {
+    audioText: 'Ａ：この りんごは いくらですか。\nＢ：１つ １２０えんです。\nＡ：じゃ、３つ ください。\nＢ：はい、３６０えんです。',
+    correctAnswer: '３６０えん',
+    hint: '사과 3개의 가격을 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 11,
+  },
+  {
+    audioText: 'Ａ：すみません、デパートは どこですか。\nＢ：あそこに おおきい ビルが ありますね。あの となりです。\nＡ：ありがとうございます。',
+    correctAnswer: 'おおきいビルのとなり',
+    hint: '백화점의 위치가 어디인지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 12,
+  },
+  {
+    audioText: 'Ａ：あしたは なにを しますか。\nＢ：あしたは ともだちと テニスを します。そのあと、ごはんを たべます。\nＡ：いいですね。',
+    correctAnswer: 'テニス',
+    hint: '내일 친구와 무엇을 하는지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 13,
+  },
+  {
+    audioText: 'Ａ：すみません、いま なんじですか。\nＢ：いま ９じ１５ふんです。\nＡ：あ、バスは ９じ２０ぷんです。いそぎましょう！',
+    correctAnswer: '９じ２０ぷん',
+    hint: '버스 출발 시간을 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 14,
+  },
+  {
+    audioText: 'Ａ：おなかが すきましたね。なにを たべますか。\nＢ：わたしは カレーを たべます。\nＡ：じゃ、わたしは ラーメンを たべます。',
+    correctAnswer: 'ラーメン',
+    hint: 'A가 무엇을 먹기로 했는지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 15,
+  },
+  {
+    audioText: 'Ａ：その かばんは だれのですか。\nＢ：これは わたしのです。たんじょうびに ははから もらいました。\nＡ：とても きれいですね。',
+    correctAnswer: 'はは',
+    hint: '가방을 누구에게 받았는지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 16,
+  },
+  {
+    audioText: 'Ａ：きのう、どこに いきましたか。\nＢ：こうえんに いきました。はなが たくさん さいていましたよ。\nＡ：そうですか。いいですね。',
+    correctAnswer: 'こうえん',
+    hint: '어제 어디에 갔는지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 17,
+  },
+  {
+    audioText: 'Ａ：さとうさんは どこですか。\nＢ：さとうさんは いま かいぎしつに います。\nＡ：だれと いますか。\nＢ：たなかさんと います。',
+    correctAnswer: 'かいぎしつ',
+    hint: '사토 씨가 지금 어디에 있는지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 18,
+  },
+  {
+    audioText: 'Ａ：のみものは なにが いいですか。\nＢ：おちゃを おねがいします。\nＡ：つめたいのですか、あついのですか。\nＢ：つめたいのを ください。',
+    correctAnswer: 'つめたいおちゃ',
+    hint: 'B가 어떤 음료를 마시고 싶어 하는지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 19,
+  },
+  {
+    audioText: 'Ａ：あしたの パーティーには だれが きますか。\nＢ：やまださんと ジョンさんが きます。アリスさんは やすみです。\nＡ：そうですか。わかりました。',
+    correctAnswer: 'やまださんとジョンさん',
+    hint: '파티에 누가 오는지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 20,
+  },
+  {
+    audioText: 'Ａ：テストは なんようびですか。\nＢ：すいようびです。あさ １０じからです。\nＡ：すいようびですね。わかりました。',
+    correctAnswer: 'すいようび',
+    hint: '시험이 무슨 요일인지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 21,
+  },
+  {
+    audioText: 'Ａ：この ズボンは いくらですか。\nＢ：それは ２,５００えんです。\nＡ：ちょっと たかいですね。あの ズボンは？\nＢ：あれは １,８００えんです。',
+    correctAnswer: '１,８００えん',
+    hint: '저쪽(あれ) 바지의 가격이 얼마인지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 22,
+  },
+  {
+    audioText: 'Ａ：ゆうべは どこで ごはんを たべましたか。\nＢ：いえで たべました。ははが すしを つくりました。\nＡ：いいですね。おいしかったですか。',
+    correctAnswer: 'いえ',
+    hint: '어제 저녁을 어디에서 먹었는지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 23,
+  },
+  {
+    audioText: 'Ａ：せんせいは どこに いますか。\nＢ：きょうしつに います。いま じゅぎょうを しています。\nＡ：そうですか。あとで いきます。',
+    correctAnswer: 'きょうしつ',
+    hint: '선생님이 지금 어디에 계신지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 24,
+  },
+  {
+    audioText: 'Ａ：すみません、この とけいは どこのでか。\nＢ：それは にほんのですよ。あちらのは ドイツのです。\nＡ：そうですか。にほんのを ください。',
+    correctAnswer: 'にほん',
+    hint: '손님이 산 시계는 어느 나라 것인지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 25,
+  },
+  {
+    audioText: 'Ａ：なつやすみは なんにち ありますか。\nＢ：１４にち あります。８がつ １にちから １４にちまでです。\nＡ：いいですね。',
+    correctAnswer: '１４にち',
+    hint: '여름휴가가 며칠 동안인지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 26,
+  },
+  {
+    audioText: 'Ａ：パンを ふたつと ぎゅうにゅうを ひとつ ください。\nＢ：はい。パンは ひとつ １５０えん、ぎゅうにゅうは ２００えんです。ぜんぶで ５００えんです。\nＡ：はい、５００えんです。',
+    correctAnswer: '５００えん',
+    hint: '전부 합쳐서 얼마인지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 27,
+  },
+  {
+    audioText: 'Ａ：この おんがくは だれのですか。\nＢ：それは たなかさんの ＣＤです。\nＡ：そうですか。いい おんがくですね。',
+    correctAnswer: 'たなかさん',
+    hint: '누구의 CD인지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 28,
+  },
+  {
+    audioText: 'Ａ：すみません。ぎんこうは どこですか。\nＢ：この みちを まっすぐ いってください。郵便局（ゆうびんきょく）の まえに あります。\nＡ：ありがとうございます。',
+    correctAnswer: 'ゆうびんきょくのまえ',
+    hint: '은행이 어디에 있는지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 29,
+  },
+  {
+    audioText: 'Ａ：きょうの てんきは どうですか。\nＢ：あさは あめでしたが、いまは はれています。\nＡ：よかったですね。',
+    correctAnswer: 'はれ',
+    hint: '지금 날씨가 어떤지 들어보세요.',
+    difficulty: 'beginner',
+    audioUrl: '',
+    order: 30,
+  },
 
   // ═══════════════════════════════════════════════════
-  // ELEMENTARY  (JLPT N4 level)  — items 11-20
+  // ELEMENTARY  (JLPT N4 level)  — items 31-60
   // Natural dialogues with kanji, requests, invitations
   // ═══════════════════════════════════════════════════
   {
@@ -112,7 +272,7 @@ export const listeningJaData = [
     hint: '전화가 왔었는데 누구에게서였는지 들어보세요.',
     difficulty: 'elementary',
     audioUrl: '',
-    order: 11,
+    order: 31,
   },
   {
     audioText:
@@ -121,16 +281,16 @@ export const listeningJaData = [
     hint: '이이지마 씨 집에서 가마쿠라까지 차로 얼마나 걸리는지 들어보세요.',
     difficulty: 'elementary',
     audioUrl: '',
-    order: 12,
+    order: 32,
   },
   {
     audioText:
-      'Ａ：おかださん、きのう、ＩＴＳソフトからインボイスきましたか。\nおかだ：いいえ、きませんでしたよ。でも、メールがきましたよ。プリントアウトしますか。\nＡ：はい、おねがいします。２まいおねがいします。\nおかだ：はい。それから、３０ぷんまえにＩＴＳソフトのいしださんからでんわがありましたよ。',
+      'Ａ：おかださん、きのう、ＩＴＳソフトからインボイスきましたか。\nおかだ：いいえ、きませんでしたよ。でも、メールがきましたよ。プリントアウトしますか。\nＡ：はい、おねがいします。２まいおねがいします。\nおかだ：はい. それから、３０ぷんまえにＩＴＳソフトのいしださんからでんわがありましたよ。',
     correctAnswer: 'いしださん',
     hint: '30분 전에 전화한 사람은 누구인지 들어보세요.',
     difficulty: 'elementary',
     audioUrl: '',
-    order: 13,
+    order: 33,
   },
   {
     audioText:
@@ -139,7 +299,7 @@ export const listeningJaData = [
     hint: 'B씨의 넥타이가 얼마였는지 들어보세요.',
     difficulty: 'elementary',
     audioUrl: '',
-    order: 14,
+    order: 34,
   },
   {
     audioText:
@@ -148,7 +308,7 @@ export const listeningJaData = [
     hint: '레스토랑의 정기 휴일이 언제인지 들어보세요.',
     difficulty: 'elementary',
     audioUrl: '',
-    order: 15,
+    order: 35,
   },
   {
     audioText:
@@ -157,7 +317,7 @@ export const listeningJaData = [
     hint: '아키타 씨가 맥도날드에서 점심을 얼마나 자주 먹는지 들어보세요.',
     difficulty: 'elementary',
     audioUrl: '',
-    order: 16,
+    order: 36,
   },
   {
     audioText:
@@ -166,16 +326,16 @@ export const listeningJaData = [
     hint: '손님이 사려는 시계의 가격이 얼마인지 들어보세요.',
     difficulty: 'elementary',
     audioUrl: '',
-    order: 17,
+    order: 37,
   },
   {
     audioText:
-      'Ａ：ルスバンでんわです。はい、ＭＬＣです。メッセージをどうぞ。ピー\nＢ：おはようございます。８じからのプライベートレッスンのベティーです。すみませんが、きょうは８じからかいぎがありますから、レッスンにいきません。あさって、８じにいきます。',
+      'Ａ：ルスバンでんわです。はい、ＭＬＣです. メッセージをどうぞ。ピー\nＢ：おはようございます。８じからのプライベートレッスンのベティーです。すみませんが、きょうは８じからかいぎがありますから、レッスンにいきません。あさって、８じにいきます。',
     correctAnswer: 'かいぎがある',
     hint: '베티가 오늘 레슨에 올 수 없는 이유가 무엇인지 들어보세요.',
     difficulty: 'elementary',
     audioUrl: '',
-    order: 18,
+    order: 38,
   },
   {
     audioText:
@@ -184,7 +344,7 @@ export const listeningJaData = [
     hint: '아키타 씨가 주말에 한 두 가지 활동을 들어보세요.',
     difficulty: 'elementary',
     audioUrl: '',
-    order: 19,
+    order: 39,
   },
   {
     audioText:
@@ -193,11 +353,171 @@ export const listeningJaData = [
     hint: '니시야마 씨가 일주일에 맥주를 몇 병 마시는지 들어보세요.',
     difficulty: 'elementary',
     audioUrl: '',
-    order: 20,
+    order: 40,
+  },
+  {
+    audioText: 'Ａ：田中さん、明日、一緒に映画に行きませんか。\n田中：いいですね。何時に会いましょうか。\nＡ：駅に２時に来てください。\n田中：わかりました。楽しみにしています。',
+    correctAnswer: 'えきに２じ',
+    hint: '내일 몇 시에 어디에서 만나기로 했는지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 41,
+  },
+  {
+    audioText: 'Ａ：すみません、この近くにコンビニはありますか。\nＢ：ええ、あそこの角を右に曲がると、郵便局の隣にありますよ。\nＡ：ありがとうございます。助かりました。',
+    correctAnswer: 'ゆうびんきょくのとなり',
+    hint: '편의점이 어디에 있는지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 42,
+  },
+  {
+    audioText: 'Ａ：木村さん、その辞書、ちょっと貸してくれませんか。\n木村：すみません、今使っているんです。あとでいいですか。\nＡ：じゃ、終わったら教えてください。',
+    correctAnswer: 'いま、つかっている',
+    hint: 'A가 사전을 지금 빌릴 수 없는 이유를 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 43,
+  },
+  {
+    audioText: 'Ａ：昨日のパーティー、楽しかったですね。\nＢ：ええ、でも少し飲みすぎました。今日は頭が痛いです。\nＡ：大丈夫ですか。お大事に。',
+    correctAnswer: 'あたまがいたい',
+    hint: 'B의 몸 상태가 어떤지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 44,
+  },
+  {
+    audioText: 'Ａ：来週の土曜日、バーベキューをしませんか。\nＢ：いいですね。何を持っていけばいいですか。\nＡ：飲み物は準備しますから、お肉をお願いします。\nＢ：わかりました。',
+    correctAnswer: 'おにく',
+    hint: 'B가 무엇을 가져가기로 했는지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 45,
+  },
+  {
+    audioText: 'Ａ：すみません、この服、試着してもいいですか。\n店員：はい、あちらの試着室をお使いください。\nＡ：あ、少し小さいですね。もう一つ大きいサイズはありますか。\n店員：はい、少々お待ちください。',
+    correctAnswer: 'すこしちいさい',
+    hint: '옷을 입어본 뒤 A가 뭐라고 했는지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 46,
+  },
+  {
+    audioText: 'Ａ：今朝、電車が遅れて大変でしたね。\nＢ：ええ、事故があったみたいですよ。３０分も止まっていました。\nＡ：それで皆遅刻したんですね。',
+    correctAnswer: 'じこ',
+    hint: '열차가 지연된 이유가 무엇인지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 47,
+  },
+  {
+    audioText: 'Ａ：夏休みに国へ帰るんですか。\nＢ：いいえ、今年は帰りません。アルバイトをすることにしました。\nＡ：そうですか。忙しくなりそうですね。',
+    correctAnswer: 'アルバイトをする',
+    hint: 'B가 이번 여름방학에 무엇을 하기로 했는지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 48,
+  },
+  {
+    audioText: 'Ａ：山田さん、今日飲みに行きませんか。\n山田：あ、すみません。今日は家でサッカーの試合を見ることになっているんです。\nＡ：そうですか。残念です。また今度誘ってください。',
+    correctAnswer: 'サッカーのしあいをみる',
+    hint: '야마다 씨가 오늘 제안을 거절한 이유를 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 49,
+  },
+  {
+    audioText: 'Ａ：このレストラン、予約が必要ですか。\n店員：はい、週末はいつも混んでいますので、予約していただいたほうが安心です。\nＡ：じゃ、土曜日の６時に２名でお願いします。',
+    correctAnswer: 'よやくしたほうがいい',
+    hint: '레스토랑 이용에 대해 점원이 뭐라고 조언했는지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 50,
+  },
+  {
+    audioText: 'Ａ：最近、日本語が上手になりましたね。\nＢ：ありがとうございます。毎日寝る前に、日本のドラマを見ているんです。\nＡ：それはいい方法ですね。',
+    correctAnswer: 'にほんのドラマをみる',
+    hint: 'B가 일본어 공부를 위해 매일 하는 일이 무엇인지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 51,
+  },
+  {
+    audioText: 'Ａ：あ、雨が降ってきましたよ。傘を持っていますか。\nＢ：いいえ、持っていません。どうしましょう。\nＡ：私のを貸してあげますよ。私は車ですから。',
+    correctAnswer: 'かさをかす',
+    hint: 'A가 B에게 어떤 제안을 했는지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 52,
+  },
+  {
+    audioText: 'Ａ：この漢字の読み方を教えてください。\nＢ：それは「案内（あんない）」ですよ。ガイドという意味です。\nＡ：わかりました。ありがとうございます。',
+    correctAnswer: 'あんない',
+    hint: 'A가 물어본 한자의 읽기 방식이 무엇인지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 53,
+  },
+  {
+    audioText: 'Ａ：あしたの会議、何時からでしたっけ。\nＢ：午前１０時半からですよ。資料は準備できましたか。\nＡ：あ、まだです。急いで作ります。',
+    correctAnswer: '１０じはん',
+    hint: '내일 회의 시간을 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 54,
+  },
+  {
+    audioText: 'Ａ：このカメラ、使い方がよくわからないんですが。\nＢ：どれどれ。あ、ここに電池を入れれば動きますよ。\nＡ：あ、本当だ。ありがとうございます。',
+    correctAnswer: 'でんちをいれる',
+    hint: '카메라를 작동시키기 위해 무엇을 해야 하는지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 55,
+  },
+  {
+    audioText: 'Ａ：お名前をここに書いてください。\nＢ：鉛筆（えんぴつ）で書いてもいいですか。\nＡ：いいえ、ボールペンで書いてください。',
+    correctAnswer: 'ボールペン',
+    hint: '이름을 무엇으로 써야 하는지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 56,
+  },
+  {
+    audioText: 'Ａ：もしもし、今どこですか。\nＢ：今、電車に乗っています。あと１０分で着きます。\nＡ：わかりました。改札（かいさつ）の前で待っています。',
+    correctAnswer: 'かいさつのまえ',
+    hint: 'A가 어디에서 기다리겠다고 했는지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 57,
+  },
+  {
+    audioText: 'Ａ：コーヒーのおかわりはいかがですか。\nＢ：いいえ、もう結構です。お腹がいっぱいです。\nＡ：そうですか。じゃ、デザートを持ってきますね。',
+    correctAnswer: 'もうけっこう',
+    hint: 'B가 커피 제안에 대해 뭐라고 답했는지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 58,
+  },
+  {
+    audioText: 'Ａ：佐藤さん、昨日休んだね。どうしたの？\n佐藤：風邪をひいて、熱があったんだ。今日はもう大丈夫。\nＡ：無理しないでね。',
+    correctAnswer: 'かぜをひいてねつがあった',
+    hint: '사토 씨가 어제 결석한 이유를 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 59,
+  },
+  {
+    audioText: 'Ａ：この荷物、重いですね。手伝いましょうか。\nＢ：ありがとうございます。助かります。\nＡ：どこまで運びますか。',
+    correctAnswer: 'てつだう',
+    hint: 'A가 B에게 어떤 친절을 베풀었는지 들어보세요.',
+    difficulty: 'elementary',
+    audioUrl: '',
+    order: 60,
   },
 
   // ═══════════════════════════════════════════════════
-  // INTERMEDIATE  (JLPT N3 level)  — items 21-30
+  // INTERMEDIATE  (JLPT N3 level)  — items 61-90
   // Full kanji, natural speech, opinion & detail questions
   // ═══════════════════════════════════════════════════
   {
@@ -207,7 +527,7 @@ export const listeningJaData = [
     hint: '레스토랑 예약이 필요한지, 불필요한지를 들어보세요.',
     difficulty: 'intermediate',
     audioUrl: '',
-    order: 21,
+    order: 61,
   },
   {
     audioText:
@@ -216,7 +536,7 @@ export const listeningJaData = [
     hint: '내일 프레젠테이션이 몇 시에 시작하는지 들어보세요.',
     difficulty: 'intermediate',
     audioUrl: '',
-    order: 22,
+    order: 62,
   },
   {
     audioText:
@@ -225,7 +545,7 @@ export const listeningJaData = [
     hint: '남자에게 추천된 체육관 이름이 무엇인지 들어보세요.',
     difficulty: 'intermediate',
     audioUrl: '',
-    order: 23,
+    order: 63,
   },
   {
     audioText:
@@ -234,7 +554,7 @@ export const listeningJaData = [
     hint: '회의 장소가 어디로 바뀌었는지 들어보세요.',
     difficulty: 'intermediate',
     audioUrl: '',
-    order: 24,
+    order: 64,
   },
   {
     audioText:
@@ -243,7 +563,7 @@ export const listeningJaData = [
     hint: '8월에 홋카이도에서 볼 수 있는 것이 무엇인지 들어보세요.',
     difficulty: 'intermediate',
     audioUrl: '',
-    order: 25,
+    order: 65,
   },
   {
     audioText:
@@ -252,7 +572,7 @@ export const listeningJaData = [
     hint: '남자의 출장에서 잘 된 일이 무엇인지 들어보세요.',
     difficulty: 'intermediate',
     audioUrl: '',
-    order: 26,
+    order: 66,
   },
   {
     audioText:
@@ -261,7 +581,7 @@ export const listeningJaData = [
     hint: '다음 각 역 정차 열차가 몇 분 후에 오는지 들어보세요.',
     difficulty: 'intermediate',
     audioUrl: '',
-    order: 27,
+    order: 67,
   },
   {
     audioText:
@@ -270,7 +590,7 @@ export const listeningJaData = [
     hint: '남자가 일본어 공부를 위해 하는 두 가지 활동을 들어보세요.',
     difficulty: 'intermediate',
     audioUrl: '',
-    order: 28,
+    order: 68,
   },
   {
     audioText:
@@ -279,7 +599,7 @@ export const listeningJaData = [
     hint: '두 사람이 영화를 보러 가기로 한 날이 언제인지 들어보세요.',
     difficulty: 'intermediate',
     audioUrl: '',
-    order: 29,
+    order: 69,
   },
   {
     audioText:
@@ -288,11 +608,171 @@ export const listeningJaData = [
     hint: '환경 문제 해결에 특히 시급한 두 가지 분야를 들어보세요.',
     difficulty: 'intermediate',
     audioUrl: '',
-    order: 30,
+    order: 70,
+  },
+  {
+    audioText: '男：新しいマンション、どう？\n女：駅に近くて便利なんだけど、家賃がちょっと高めなの。\n男：まあ、立地がいいと仕方ないよね。日当たりはどう？\n女：南向きだから、すごくいいよ。洗濯物がすぐ乾くの。',
+    correctAnswer: 'ひあたりがいい',
+    hint: '여자가 새 아파트에 대해 만족하는 점을 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 71,
+  },
+  {
+    audioText: '女：明日、ハイキングに行くんだけど、お弁当どうする？\n男：僕がサンドイッチを作っていくよ。何かリクエストはある？\n女：卵サンドがいいな。あと、果物も少しあると嬉しい。\n男：わかった。じゃあ、果物はスーパーで買っておくね。',
+    correctAnswer: 'たまごサンドとくだもの',
+    hint: '남자가 준비하기로 한 메뉴를 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 72,
+  },
+  {
+    audioText: '男：今度のプロジェクト、佐藤さんもメンバーに入ってくれることになったよ。\n女：本当ですか？彼女、英語が堪能だから、海外とのやり取りがスムーズになりますね。\n男：そうだね。通訳を頼まなくて済むから助かるよ。',
+    correctAnswer: 'つうやくをたのまなくてすむ',
+    hint: '사토 씨가 합류해서 좋아진 구체적인 이유를 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 73,
+  },
+  {
+    audioText: '女：すみません、この本を返却したいんですが、期限が過ぎてしまって。\n司書：あ、1日過ぎていますね。延滞金はかかりませんが、しばらく貸出ができなくなります。\n女：そうですか。どのくらいですか。\n司書：1週間、新しく借りることはできません。',
+    correctAnswer: '１しゅうかん、かしだしができない',
+    hint: '반납 기한을 어겼을 때의 조치가 무엇인지 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 74,
+  },
+  {
+    audioText: '男：最近、眠りが浅くて困っているんだ。何かいい方法はないかな。\n女：寝る前にスマホを見るのをやめるといいって聞くよ。\n男：やっぱりそうか。ついつい見ちゃうんだよね。\n女：ハーブティーを飲んでリラックスするのもおすすめだよ。',
+    correctAnswer: 'スマホをやめる、ハーブティーをのむ',
+    hint: '불면 해결을 위해 여자가 추천한 두 가지 방법을 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 75,
+  },
+  {
+    audioText: '女：昨日の地震、結構揺れたね。大丈夫だった？\n男：うん、棚から本が数冊落ちた程度で済んだよ。君のほうは？\n女：うちは食器が一つ割れちゃった。でも、大きな被害がなくてよかった。\n男：本当だね。改めて防災グッズを確認しておこう。',
+    correctAnswer: 'しょっきがひとつわれた',
+    hint: '지진으로 인해 여자에게 일어난 피해를 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 76,
+  },
+  {
+    audioText: '男：すみません、クレジットカードを紛失してしまったようなんですが。\n担当：承知いたしました。すぐに利用を停止します。最後にご利用されたのはいつですか。\n男：昨日の夜、レストランで支払いに使ったのが最後です。\n担当：わかりました。再発行の手続きも併せて行いますか。',
+    correctAnswer: 'きのうのよるのレストラン',
+    hint: '남자가 마지막으로 카드를 사용한 장소와 시간을 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 77,
+  },
+  {
+    audioText: '女：来週、お見舞いに行く予定なんだけど、お花以外に何がいいかな。\n男：入院生活は退屈だろうから、雑誌や漫画はどう？\n女：いいわね。彼、ミステリー小説が好きだから、何冊か買っていこう。\n男：喜ぶと思うよ。',
+    correctAnswer: 'ミステリーしょうせつ',
+    hint: '여자가 병문안 선물로 가져가기로 한 것을 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 78,
+  },
+  {
+    audioText: '男：インターンの面接、どうだった？\n女：緊張したけど、やりたいことは伝えられたと思う。\n男：結果はいつわかるの？\n女：来週の月曜日にメールで連絡が来る予定だよ。ドキドキする。',
+    correctAnswer: 'らいしゅうのげつようび',
+    hint: '면접 결과 발표일이 언제인지 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 79,
+  },
+  {
+    audioText: '女：エアコンの調子が悪くて、全然冷えないの。\n男：もう10年以上使ってるんでしょ？修理するより買い替えたほうが安上がりかもよ。\n女：そうだね。最近のは省エネだし、電気代も安くなるかもしれないし。\n男：週末、家電量販店に見に行こう。',
+    correctAnswer: 'かいかえたほうがいい',
+    hint: '고장 난 에어컨에 대해 남자가 제안한 해결책을 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 80,
+  },
+  {
+    audioText: '男：今回のマラソン大会、完走できた？\n女：ううん、30キロ地点で足が痛くなって、リタイアしちゃった。\n男：残念だったね。でも、あそこまで走れただけでもすごいよ。\n女：次はもっと練習して、最後まで走りきりたいな。',
+    correctAnswer: '３０キロちてんでリタイア',
+    hint: '마라톤 대회 결과가 어떠했는지 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 81,
+  },
+  {
+    audioText: '女：すみません、このスマホの画面が割れてしまったんですが、修理できますか。\n店員：はい、可能です。ただ、部品の在庫がないので、1週間ほどお預かりすることになります。\n女：1週間ですか。代わりのスマホは借りられますか。\n店員：はい、無料でお貸し出しできますよ。',
+    correctAnswer: '１しゅうかんかかる',
+    hint: '수리에 걸리는 기간이 얼마인지 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 82,
+  },
+  {
+    audioText: '男：新しい企画、部長に反対されちゃったよ。\n女：え、あんなに準備したのに？理由はなんだったの？\n男：予算がかかりすぎるって。もっとコストを抑えた案を考え直さないと。\n女：大変だけど、頑張って。応援してるよ。',
+    correctAnswer: 'よさんがかかりすぎる',
+    hint: '기획안이 거절된 이유가 무엇인지 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 83,
+  },
+  {
+    audioText: '女：あの、この近くに美味しいケーキ屋さんはありますか。\n男：駅の裏にある「モンブラン」という店が有名ですよ。特にシュークリームが絶品です。\n女：ありがとうございます。早速行ってみます。',
+    correctAnswer: 'シュークリーム',
+    hint: '추천받은 가게에서 특히 맛있는 메뉴가 무엇인지 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 84,
+  },
+  {
+    audioText: '男：週末、キャンプに行かない？道具は全部持ってるから、手ぶらでいいよ。\n女：楽しそう！でも、私、虫が苦手なんだけど大丈夫かな。\n男：最近のキャンプ場は設備が整ってるし、虫除け対策もしっかりすれば平気だよ。\n女：じゃあ、挑戦してみようかな。',
+    correctAnswer: 'むしがにがて',
+    hint: '여자가 캠핑 제안을 듣고 걱정한 점이 무엇인지 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 85,
+  },
+  {
+    audioText: '女：山田さん、転職するって本当？\n男：うん。実家の家業を継ぐことになったんだ。急な話で申し訳ない。\n女：そうだったんだ。寂しくなるけど、新しい道でも頑張ってね。\n男：ありがとう。',
+    correctAnswer: 'じっかのかぎょうをつぐ',
+    hint: '남자가 이직(퇴직)을 결심한 이유를 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 86,
+  },
+  {
+    audioText: '男：このアプリ、全然動かなくなったんだけど、どうすればいい？\n女：一度電源を切って、再起動してみたら？\n男：やってみたけどダメだった。アンインストールして入れ直したほうがいいかな。\n女：その前に、OSのアップデートが来てるか確認してみて。',
+    correctAnswer: 'OSのアップデートをかくにん',
+    hint: '앱 오류에 대해 여자가 마지막으로 조언한 내용이 무엇인지 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 87,
+  },
+  {
+    audioText: '女：明日、お花見に行くけど、場所取りはどうする？\n男：僕が早めに行って確保しておくよ。みんなは12時頃に来て。\n女：助かるわ。お弁当は私が準備していくね。\n男：よろしく！',
+    correctAnswer: 'おとこがばしょとりをする',
+    hint: '꽃구경 준비 분담이 어떻게 되었는지 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 88,
+  },
+  {
+    audioText: '男：すみません、この資料、5部コピーしてもらえますか。\n女：はい。ホチキス（ステープラー）留めも必要ですか。\n男：ええ、左上でお願いします。',
+    correctAnswer: '５ぶ、ひだりうえでホチキスどめ',
+    hint: '복사 의뢰 내용이 무엇인지 구체적으로 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 89,
+  },
+  {
+    audioText: '女：最近、物価が上がって生活が大変よね。\n男：特に電気代やガス代の負担が大きいね。こまめにスイッチを切るようにしてるよ。\n女：うちもそう。スーパーでも特売品を狙って買うようにしてるわ。\n男：お互い工夫して乗り切ろう。',
+    correctAnswer: 'でんきだい、ガスだいのふたん',
+    hint: '물가 상승 중 특히 부담이 되는 항목이 무엇인지 들어보세요.',
+    difficulty: 'intermediate',
+    audioUrl: '',
+    order: 90,
   },
 
   // ═══════════════════════════════════════════════════
-  // ADVANCED  (JLPT N2 / N1 level)  — items 31-40
+  // ADVANCED  (JLPT N2 / N1 level)  — items 91-120
   // Keigo, passive/causative, abstract & business topics
   // ═══════════════════════════════════════════════════
   {
@@ -302,7 +782,7 @@ export const listeningJaData = [
     hint: '두 사람이 막차를 타기 위해 선택한 이동 수단을 들어보세요.',
     difficulty: 'advanced',
     audioUrl: '',
-    order: 31,
+    order: 91,
   },
   {
     audioText:
@@ -311,7 +791,7 @@ export const listeningJaData = [
     hint: '출장 상대방이 언제 계약서를 보내주기로 했는지 들어보세요.',
     difficulty: 'advanced',
     audioUrl: '',
-    order: 32,
+    order: 92,
   },
   {
     audioText:
@@ -320,7 +800,7 @@ export const listeningJaData = [
     hint: '고객의 주문 번호가 무엇인지 들어보세요.',
     difficulty: 'advanced',
     audioUrl: '',
-    order: 33,
+    order: 93,
   },
   {
     audioText:
@@ -329,7 +809,7 @@ export const listeningJaData = [
     hint: '주식 시장 상승의 원인을 들어보세요.',
     difficulty: 'advanced',
     audioUrl: '',
-    order: 34,
+    order: 94,
   },
   {
     audioText:
@@ -338,7 +818,7 @@ export const listeningJaData = [
     hint: '남자가 지금 어머니에게 감사하는 이유를 들어보세요.',
     difficulty: 'advanced',
     audioUrl: '',
-    order: 35,
+    order: 95,
   },
   {
     audioText:
@@ -347,7 +827,7 @@ export const listeningJaData = [
     hint: '교수가 재정 과제 해결 방법으로 제시한 것을 들어보세요.',
     difficulty: 'advanced',
     audioUrl: '',
-    order: 36,
+    order: 96,
   },
   {
     audioText:
@@ -356,7 +836,7 @@ export const listeningJaData = [
     hint: '사장님이 언제 돌아오는지 들어보세요.',
     difficulty: 'advanced',
     audioUrl: '',
-    order: 37,
+    order: 97,
   },
   {
     audioText:
@@ -365,7 +845,7 @@ export const listeningJaData = [
     hint: '피크닉을 개최하는 시간대를 들어보세요.',
     difficulty: 'advanced',
     audioUrl: '',
-    order: 38,
+    order: 98,
   },
   {
     audioText:
@@ -374,15 +854,175 @@ export const listeningJaData = [
     hint: '여자가 프로젝트에 도전해야 한다고 말하는 두 가지 근거를 들어보세요.',
     difficulty: 'advanced',
     audioUrl: '',
-    order: 39,
+    order: 99,
   },
   {
     audioText:
-      'アナウンサー：本日の経済ニュースをお伝えします。政府は来年度の予算案を閣議決定し、社会保障費が過去最大規模となる見通しです。財源については、国債発行に頼る部分が大きく、財政健全化への道のりは依然として厳しい状況です。',
+      'アナウンサー：本日の経済ニュースをお伝えします. 政府は来年度の予算案を閣議決定し、社会保障費が過去最大規模となる見通しです。財源については、国債発行に頼る部分が大きく、財政健全化への道のりは依然として厳しい状況です。',
     correctAnswer: 'しゃかいほしょうひがかこさいだいきぼ',
     hint: '뉴스에서 내년도 예산안의 특징이 무엇인지 들어보세요.',
     difficulty: 'advanced',
     audioUrl: '',
-    order: 40,
+    order: 100,
+  },
+  {
+    audioText: '上司：君、例の報告書の件だが、もう少し具体性に欠けるのではないか。\n部下：申し訳ございません。データの裏付けが不十分だったかと存じます。早急に補足資料を作成いたします。\n上司：期待しているよ。特に競合他社の動向については、念入りに調べてくれたまえ。',
+    correctAnswer: 'きょうごうたしゃのどうこう',
+    hint: '상사가 부하 직원에게 특히 신경 써서 조사하라고 지시한 내용이 무엇인지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 101,
+  },
+  {
+    audioText: '司会：本日のパネルディスカッションでは、「AIと雇用の未来」というテーマで議論を深めてまいります。まず、佐藤先生、技術革新が労働市場に与える影響についてどのようにお考えでしょうか。\n佐藤：そうですね。単純作業の自動化が進む一方で、クリエイティビティや対人スキルを要する業務の価値は相対的に高まっていくと考えております。',
+    correctAnswer: 'クリエイティビティやたいじんスキル',
+    hint: '기술 혁신 속에서 가치가 높아질 것으로 예상되는 역량 두 가지를 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 102,
+  },
+  {
+    audioText: '女：お忙しいところ恐縮ですが、新商品のパンフレットの最終稿、ご確認いただけましたでしょうか。\n男：ああ、見せてもらったよ。デザインは洗練されていて申し分ない。ただ、価格表記のフォントが少し視認性に欠ける気がするんだ。\n女：失礼いたしました。直ちに修正し、再提出させていただきます。',
+    correctAnswer: 'かかくひょうきのフォントのしにんせい',
+    hint: '남자가 팜플렛 시안에서 지적한 수정 사항이 무엇인지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 103,
+  },
+  {
+    audioText: 'ナレーター：近年、若年層の車離れが加速していると言われています。維持費の高騰や公共交通機関の利便性向上に加え、環境意識の高まりも背景にあるようです。これに対し、自動車メーカー各社はサブスクリプションサービスの導入など、所有にこだわらない新たなビジネスモデルを模索しています。',
+    correctAnswer: 'サブスクリプションサービス',
+    hint: '자동차 제조사가 젊은 층의 수요를 잡기 위해 도입하고 있는 새로운 비즈니스 모델을 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 104,
+  },
+  {
+    audioText: '男：せっかく遠路はるばるお越しいただいたのに、あいにくの空模様で申し訳ございません。\n女：滅相もございません。雨に煙る山々もまた、趣があって素敵ですわ。案内していただいて、本当に感謝しております。\n男：そう言っていただけると救われます。では、こちらがこの地域で最も古いとされる寺院です。',
+    correctAnswer: 'あめにけむるやまやま',
+    hint: '날씨에 대한 사과에 대해 여자가 어떻게 답했는지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 105,
+  },
+  {
+    audioText: '担当：弊社の新卒採用試験において、最も重視しているのは自律性です。指示を待つのではなく、自ら課題を見つけ、解決に向けて周囲を巻き込んでいける人材を求めております。\n学生：具体的な評価基準はございますか。\n担当：過去の経験において、どのように困難を乗り越えてきたか、そのプロセスを注視しております。',
+    correctAnswer: 'じりつせい',
+    hint: '신입사원 채용에서 가장 중요하게 생각하는 가치가 무엇인지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 106,
+  },
+  {
+    audioText: 'アナウンサー：昨日、国連の気候変動サミットが閉幕しました。各国は温室効果ガスの削減目標を上方修正することで合意しましたが、途上国への資金援助については依然として先進国との間に大きな隔たりが残っています。',
+    correctAnswer: 'とじょうこくへのしきんえんじょ',
+    hint: '사미트 결과, 국가 간 합의가 이루어지지 않은 쟁점이 무엇인지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 107,
+  },
+  {
+    audioText: '女：先生、この度は素晴らしい賞を受賞され、誠におめでとうございます。\n教授：ありがとうございます。長年の研究がこのように評価され、身に余る光栄です。これもひとえに、支えてくれた教え子や同僚たちの協力があってこそだと痛感しております。\n女：今後のご活躍も楽しみにしております。',
+    correctAnswer: 'みにあまるこうえい',
+    hint: '수상 소감 중 교수가 감사를 전한 대상과 자신의 마음을 어떻게 표현했는지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 108,
+  },
+  {
+    audioText: '男：先日のトラブルの件、対応が遅れたことによって二次被害を招いてしまった。これは重大な過失だと言わざるを得ない。\n部下：お言葉を返すようですが、当時はシステム障害も併発しており、人手が全く足りない状況でした。\n男：言い訳は通用しない。危機管理体制そのものを根本から見直す必要がある。',
+    correctAnswer: 'ききかんりたいせいのねもとからのみなおし',
+    hint: '문제 발생 후 남자가 내린 결론(지시)이 무엇인지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 109,
+  },
+  {
+    audioText: '専門家：伝統工芸の継承が危ぶまれていますが、最近では最新技術と融合させた新しい試みも増えています。例えば、3Dプリンターを用いて複雑な型を再現し、若手の職人が仕上げを行うといった手法です。これにより、敷居が高かった技術の習得が以前より容易になりつつあります。',
+    correctAnswer: '3Dプリンターとわかてしょくにん',
+    hint: '전통 공예 계승을 위해 어떤 기술과 협업이 이루어지고 있는지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 110,
+  },
+  {
+    audioText: '女：明日のお打ち合わせ、先方の社長様もご同席されるとのことです。\n男：そうですか。それは気が抜けませんね。資料の差し替えはありませんか。\n女：はい、最新の売上予測を盛り込んだものを準備いたしました。\n男：よし、万全の体制で臨もう。',
+    correctAnswer: 'さいしんのうりあげよそくをおりこんだしりょう',
+    hint: '회의를 앞두고 여자가 준비한 자료의 특징이 무엇인지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 111,
+  },
+  {
+    audioText: 'ナレーター：日本文化への関心が高まる中、インバウンド需要の多様化が進んでいます。かつての「爆買い」に象徴される消費型から、地方の生活文化を体験する「コト消費」へとシフトしており、地域資源を活かした独自のツアー開発が急務となっています。',
+    correctAnswer: 'コトしょうひ（たいけんがた）',
+    hint: '최근 일본 여행 트렌드가 어떻게 변화하고 있는지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 112,
+  },
+  {
+    audioText: '男：お客様、本日は足元の悪い中ご来店いただき、誠にありがとうございます。\n女：いいえ。どうしてもこちらの新作を拝見したくて伺いました。\n男：左様でございますか。こちらがデザイナーが1年かけて構想した一点物でございます。\n女：まあ、なんて繊細な手仕事でしょう。',
+    correctAnswer: '１ねんかけてこうそうしたいってんもの',
+    hint: '점원이 소개한 상품의 특징이 무엇인지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 113,
+  },
+  {
+    audioText: '社員：課長、この度はご栄転、心よりお祝い申し上げます。\n課長：ありがとう。君たちと離れるのは心苦しいが、本社に行っても精一杯努めるつもりだ。この部署のことは後任の田中課長に託すから、しっかり支えてやってくれ。',
+    correctAnswer: 'ほんしゃへのごえいてん',
+    hint: '과장님의 신변에 어떤 변화가 생겼는지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 114,
+  },
+  {
+    audioText: '専門家：ワークライフバランスの実現には、企業の意識改革が欠かせません。長時間労働を美徳とする従来の企業風土を打破し、短時間で成果を出す働き方を正当に評価する仕組み作りが求められています。また、テレワークの普及は育児や介護との両立を支援する強力な武器となるでしょう。',
+    correctAnswer: 'たんじかんでせいかをだすはたらきかた',
+    hint: '워크라이프 밸런스를 위해 기업이 새롭게 평가해야 할 가치가 무엇인지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 115,
+  },
+  {
+    audioText: '男：君の独断で契約を進めたというのは、会社としてのガバナンスを疑われかねない行為だぞ。\n部下：申し訳ございません。良かれと思って判断しましたが、組織としての承認フローを軽視しておりました。\n男：今回の件は厳重注意とする。二度とこのようなことがないよう、徹底するように。',
+    correctAnswer: 'しょうにんフローのけいし',
+    hint: '부하 직원이 저지른 실수의 본질이 무엇인지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 116,
+  },
+  {
+    audioText: 'ナレーター：過疎化に悩む地方自治体が、関係人口の創出に注力しています。移住という高いハードルを設けるのではなく、定期的に訪れるリピーターや、リモートワークで滞在する層を増やすことで、地域の活性化を図る狙いがあります。',
+    correctAnswer: 'かんけいじんこうのそうしゅつ',
+    hint: '지방 자치단체가 지역 활성화를 위해 노력하고 있는 전략이 무엇인지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 117,
+  },
+  {
+    audioText: '女：本日のシンポジウムにご登壇いただく、国際政治学者の鈴木先生です。先生は、東アジアの安全保障について多角的な視点から提言を続けていらっしゃいます。\n教授：ご紹介にあずかりました鈴木です。本日は歴史的経緯を踏まえつつ、今後の展望についてお話しさせていただきます。',
+    correctAnswer: 'ひがしアジアのあんぜんほしょう',
+    hint: '오늘 강연자의 전문 분야가 무엇인지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 118,
+  },
+  {
+    audioText: '男：海外進出にあたっては、ローカライズの徹底が成否を分ける。日本のやり方を押し付けるのではなく、現地の文化や習慣に寄り添ったマーケティングを展開すべきだ。\n部下：仰る通りです。現地スタッフの声をもっと積極的に反映させるべきだと痛感しております。\n男：そのための予算措置は講じるつもりだ。',
+    correctAnswer: 'ローカライズのてってい',
+    hint: '해외 진출 성공을 위해 남자가 강조한 전략이 무엇인지 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 119,
+  },
+  {
+    audioText: 'アナウンサー：政府はAI利活用の指針を公表しました。著作権保護や偽情報の拡散防止など、リスク管理の重要性を強調する内容となっており、法的拘束力はないものの、企業には自主的なルール遵守が求められます。',
+    correctAnswer: 'ちょさくけんほごやにせじょうほうのかくさんぼうし',
+    hint: '정부의 AI 지침에서 리스크 관리 항목으로 언급된 두 가지를 들어보세요.',
+    difficulty: 'advanced',
+    audioUrl: '',
+    order: 120,
   },
 ];
