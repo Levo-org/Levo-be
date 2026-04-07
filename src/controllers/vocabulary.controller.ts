@@ -101,7 +101,7 @@ export class VocabularyController {
       const status = req.query.status as string | undefined;
       const chapter = req.query.chapter ? parseInt(req.query.chapter as string, 10) : undefined;
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 100;
+      const limit = parseInt(req.query.limit as string) || 9999;
       const skip = (page - 1) * limit;
 
       const filter: Record<string, any> = { targetLanguage, status: 'published' };
