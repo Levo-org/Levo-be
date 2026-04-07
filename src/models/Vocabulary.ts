@@ -7,6 +7,7 @@ export interface IVocabulary extends Document, IEditorialMetadata {
   word: string;
   pronunciation: string;
   meaning: string;
+  meanings: string[];
   partOfSpeech: string;
   level: string;
   chapter: number;
@@ -24,6 +25,7 @@ const vocabularySchema = new Schema<IVocabulary>(
     word: { type: String, required: true, trim: true },
     pronunciation: { type: String, default: '' },
     meaning: { type: String, required: true },
+    meanings: { type: [String], default: [] },
     partOfSpeech: { type: String, required: true },
     level: { type: String, enum: LEVELS, required: true },
     chapter: { type: Number, required: true },
