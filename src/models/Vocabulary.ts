@@ -8,6 +8,11 @@ export interface IVocabulary extends Document, IEditorialMetadata {
   pronunciation: string;
   meaning: string;
   meanings: string[];
+  meaningExamples: Array<{
+    meaning: string;
+    exampleSentence: string;
+    exampleTranslation: string;
+  }>;
   partOfSpeech: string;
   level: string;
   chapter: number;
@@ -26,6 +31,16 @@ const vocabularySchema = new Schema<IVocabulary>(
     pronunciation: { type: String, default: '' },
     meaning: { type: String, required: true },
     meanings: { type: [String], default: [] },
+    meaningExamples: {
+      type: [
+        {
+          meaning: { type: String, required: true },
+          exampleSentence: { type: String, default: '' },
+          exampleTranslation: { type: String, default: '' },
+        },
+      ],
+      default: [],
+    },
     partOfSpeech: { type: String, required: true },
     level: { type: String, enum: LEVELS, required: true },
     chapter: { type: Number, required: true },
